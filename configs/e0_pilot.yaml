@@ -1,0 +1,74 @@
+# E0 pilot: paired (memory vs. no-memory) per-sample outcomes on SeqMem-Eval.
+# Answers the go/no-go questions H1 (harm exists), H2 (harm is predictable),
+# H3 (anytime-valid monitoring has useful resolution) on public data only.
+
+experiment: e0_pilot
+
+harness:
+  seqmem_root: third_party/SeqMem-Eval
+  # Interpreter of the environment where SeqMem-Eval requirements are installed.
+  python: python
+
+llm:
+  # Served by scripts/e0/serve_vllm.sh; reached through SeqMem-Eval's
+  # OpenAI-compatible ("openrouter") backend via OPENROUTER_BASE_URL.
+  served_model: Qwen/Qwen3-8B
+  base_url: http://localhost:8000/v1
+  api_key: EMPTY
+  # SeqMem-Eval paper, Appendix A.2 (Qwen3-8B): T=0.7, reasoning off, 2048 tokens.
+  temperature: 0.7
+  max_new_tokens: 2048
+  enable_thinking: false
+  embedding_model: Qwen/Qwen3-Embedding-0.6B
+  top_k: 3
+
+runs_dir: runs/e0
+reports_dir: reports/e0
+
+tasks:
+  - MATH500
+  - MMLU-Pro-Engineering
+  - MMLU-Pro-Physics
+  - HumanEval
+  - APIBench-HF
+
+# Two independent no-memory runs give the sampling-noise floor for flips.
+baseline:
+  cli_name: Baseline
+  log_name: Baseline
+  repeats: 2
+  max_parallel_samples: 16
+
+# cli_name is passed to --method; log_name is the class `name` used in output files.
+# Multi-try ExpeL-MT is excluded: it retries with feedback, so it is not a
+# single-shot memory-vs-no-memory comparison.
+methods:
+  - {cli_name: ExpRAG, log_name: HistoryRAG}
+  - {cli_name: DC-RS, log_name: DC-RS}
+  - {cli_name: AWM-Online, log_name: AWM-Online}
+  - {cli_name: ExpeL-Online-ST, log_name: ExpeL-Online-ST}
+method_repeats: 1
+
+# SeqMem-Eval Table 3, Qwen3-8B online accuracy (%), used as a reproduction check.
+# The paper reports a single "APIBench" column; its holdout config uses APIBench-HF.
+reference_accuracy:
+  Baseline: {HumanEval: 81.8, MATH500: 68.6, APIBench-HF: 64.5, MMLU-Pro-Engineering: 50.3, MMLU-Pro-Physics: 65.6}
+  HistoryRAG: {HumanEval: 82.6, MATH500: 73.0, APIBench-HF: 67.0, MMLU-Pro-Engineering: 53.1, MMLU-Pro-Physics: 68.4}
+  DC-RS: {HumanEval: 84.8, MATH500: 68.0, APIBench-HF: 71.4, MMLU-Pro-Engineering: 51.5, MMLU-Pro-Physics: 65.5}
+  AWM-Online: {HumanEval: 84.1, MATH500: 68.8, APIBench-HF: 73.9, MMLU-Pro-Engineering: 50.5, MMLU-Pro-Physics: 67.2}
+  ExpeL-Online-ST: {HumanEval: 86.4, MATH500: 73.4, APIBench-HF: 70.6, MMLU-Pro-Engineering: 53.6, MMLU-Pro-Physics: 67.8}
+reproduction_tolerance: 3.0
+
+analysis:
+  n_windows: 5
+  time_split: 0.6
+  n_bootstrap: 2000
+  alpha: 0.05
+  shadow_eps: [0.1, 0.2, 0.3, 1.0]
+  shadow_sims: 200
+  seed: 0
+
+# Pre-registered go/no-go thresholds (see README).
+go_criteria:
+  min_excess_hurt_rate: 0.05
+  min_hurt_auc: 0.65
