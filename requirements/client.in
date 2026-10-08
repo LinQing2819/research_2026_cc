@@ -1,0 +1,23 @@
+# Experiment client: SeqMem-Eval runtime for the E0 tasks + memgate analysis.
+# Pins follow third_party/SeqMem-Eval/requirements.txt; alfworld and chromadb are
+# omitted because they are only imported lazily for ALFWorld / G-Memory.
+# torch comes from the CPU index (see scripts/offline/pack_bundle.sh): the client
+# only runs the small embedding model, the GPU is left to the vLLM server.
+torch==2.14.1+cpu
+datasets==4.8.4
+pyyaml==6.0.2
+openai==2.30.0
+transformers==4.57.6
+sentence-transformers==5.3.0
+accelerate==1.13.0
+safetensors==0.7.0
+networkx==3.5
+requests
+tqdm
+pandas
+pyarrow
+numpy
+scipy
+scikit-learn
+matplotlib
+pytest

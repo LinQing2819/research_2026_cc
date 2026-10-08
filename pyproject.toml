@@ -18,9 +18,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+# Building the offline bundle (scripts/offline/pack_bundle.sh); uv re-resolves the lock files.
+pack = ["huggingface_hub>=0.24", "uv"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]

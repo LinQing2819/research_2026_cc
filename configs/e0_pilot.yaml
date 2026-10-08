@@ -6,8 +6,10 @@ experiment: e0_pilot
 
 harness:
   seqmem_root: third_party/SeqMem-Eval
-  # Interpreter of the environment where SeqMem-Eval requirements are installed.
-  python: python
+  # Interpreter with SeqMem-Eval requirements; null = the one running run_matrix.py.
+  python: null
+  # false hides the GPU from experiment processes so it is left entirely to vLLM.
+  client_uses_gpu: false
 
 llm:
   # Served by scripts/e0/serve_vllm.sh; reached through SeqMem-Eval's
@@ -20,6 +22,8 @@ llm:
   max_new_tokens: 2048
   enable_thinking: false
   embedding_model: Qwen/Qwen3-Embedding-0.6B
+  # Used instead of the hub id when the directory exists (offline server).
+  embedding_model_path: models/Qwen3-Embedding-0.6B
   top_k: 3
 
 runs_dir: runs/e0

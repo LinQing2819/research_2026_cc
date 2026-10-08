@@ -1,0 +1,4 @@
+# Generation server (CUDA 12.4 wheels: any NVIDIA driver >= 525). Kept apart from
+# the client env because vLLM pins its own torch/transformers.
+vllm==0.8.5
+transformers==4.51.3

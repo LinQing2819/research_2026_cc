@@ -30,6 +30,23 @@ runs/<exp>/<model>/<method>/rep<k>/   原始运行输出与日志
 reports/<exp>/<model>/   分析表格、图、verdict.md
 ```
 
+## 学校服务器（能访问镜像、家目录磁盘已满）
+
+家目录所在分区只剩几 GB 时，把仓库放到数据盘（例如 `/data`），安装脚本会把 Miniconda、两个虚拟环境、模型、数据集和缓存都放在仓库目录里，并强制要求该目录所在磁盘至少有 40 GB 空闲。pip 走清华镜像，模型走 `hf-mirror.com`。
+
+```bash
+bash scripts/setup/install_on_server.sh
+screen -S vllm
+CUDA_VISIBLE_DEVICES=0 bash scripts/e0/serve_vllm.sh    # 只用 0 号卡，端口 8000
+# 另开 screen，等日志出现 Application startup complete：
+.venv-client/bin/python scripts/e0/run_matrix.py --smoke 5
+.venv-client/bin/python scripts/e0/analyze.py --smoke
+.venv-client/bin/python scripts/e0/run_matrix.py
+.venv-client/bin/python scripts/e0/analyze.py
+```
+
+实验进程的 embedding 固定在 CPU 上，GPU 只给这一个 vLLM。多卡时再改用 `scripts/e0/serve_vllm_multi.sh`。
+
 ## 环境
 
 ```bash

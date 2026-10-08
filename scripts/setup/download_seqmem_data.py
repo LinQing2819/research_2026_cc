@@ -2,10 +2,12 @@
 
 Layout matches what ``scripts/e0/run_matrix.py`` passes to SeqMem-Eval via
 ``--task-data-override``, so the pinned submodule stays untouched.
+Honours ``HF_ENDPOINT`` (e.g. ``https://hf-mirror.com``) and ``GITHUB_RAW``.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -13,8 +15,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = REPO_ROOT / "data" / "seqmem"
 
-HF = "https://huggingface.co/datasets"
-GORILLA = "https://raw.githubusercontent.com/ShishirPatil/gorilla/main/data"
+HF = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/") + "/datasets"
+GITHUB_RAW = os.environ.get("GITHUB_RAW", "https://raw.githubusercontent.com").rstrip("/")
+GORILLA = f"{GITHUB_RAW}/ShishirPatil/gorilla/main/data"
 
 FILES = {
     "MATH500/test-2.jsonl": f"{HF}/HuggingFaceH4/MATH-500/resolve/main/test.jsonl",
