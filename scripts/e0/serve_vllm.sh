@@ -8,6 +8,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+if [[ ! -w "${HOME:-/}" ]]; then
+  export HOME="${ROOT}/.home"
+  mkdir -p "${HOME}"
+fi
+export HF_HOME="${HF_HOME:-${ROOT}/.cache/huggingface}"
+export TMPDIR="${TMPDIR:-${ROOT}/.cache/tmp}"
+mkdir -p "${HF_HOME}" "${TMPDIR}"
 MODEL="${MODEL:-Qwen/Qwen3-8B}"
 MODEL_PATH="${MODEL_PATH:-${ROOT}/models/${MODEL##*/}}"
 PORT="${PORT:-8000}"

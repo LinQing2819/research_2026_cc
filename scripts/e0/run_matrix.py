@@ -83,6 +83,14 @@ def build_command(cfg: dict, cli_name: str, task: str, out_dir: Path, is_baselin
 def build_env(cfg: dict, base_url: Optional[str] = None) -> dict:
     llm = cfg["llm"]
     env = dict(os.environ)
+    home = env.get("HOME", "")
+    if not home or not os.access(home, os.W_OK):
+        fallback = resolve(".home")
+        fallback.mkdir(parents=True, exist_ok=True)
+        env["HOME"] = str(fallback)
+    env.setdefault("HF_HOME", str(resolve(".cache/huggingface")))
+    env.setdefault("TMPDIR", str(resolve(".cache/tmp")))
+    os.makedirs(env["TMPDIR"], exist_ok=True)
     env.update(
         OPENROUTER_API_KEY=str(llm["api_key"]),
         OPENROUTER_BASE_URL=base_url or llm["base_url"],

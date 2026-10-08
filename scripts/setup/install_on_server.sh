@@ -8,6 +8,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+if [[ ! -w "${HOME:-/}" ]]; then
+  export HOME="${ROOT}/.home"
+  mkdir -p "${HOME}"
+  echo "Home directory is not writable; using ${HOME}"
+fi
 INDEX="${PIP_INDEX:-https://pypi.tuna.tsinghua.edu.cn/simple}"
 TRUSTED="${PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}"
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
