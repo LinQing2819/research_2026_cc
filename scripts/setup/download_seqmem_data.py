@@ -18,21 +18,29 @@ DATA_ROOT = REPO_ROOT / "data" / "seqmem"
 
 HF = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/") + "/datasets"
 GITHUB_RAW = os.environ.get("GITHUB_RAW", "https://raw.githubusercontent.com").rstrip("/")
-GORILLA = f"{GITHUB_RAW}/ShishirPatil/gorilla/main/data"
+def gorilla(relpath: str) -> list[str]:
+    """jsDelivr first: raw.githubusercontent.com stalls on the lab network."""
+    raw = f"{GITHUB_RAW}/ShishirPatil/gorilla/main/data/{relpath}"
+    return [
+        f"https://cdn.jsdelivr.net/gh/ShishirPatil/gorilla@main/data/{relpath}",
+        f"https://ghfast.top/https://raw.githubusercontent.com/ShishirPatil/gorilla/main/data/{relpath}",
+        raw,
+    ]
+
 
 FILES = {
     "MATH500/test-2.jsonl": [
-        f"{HF}/HuggingFaceH4/MATH-500/resolve/main/test.jsonl",
         "https://www.modelscope.cn/datasets/AI-ModelScope/MATH-500/resolve/master/test.jsonl",
+        f"{HF}/HuggingFaceH4/MATH-500/resolve/main/test.jsonl",
     ],
     "MMLU-Pro/test.parquet": [f"{HF}/TIGER-Lab/MMLU-Pro/resolve/main/data/test-00000-of-00001.parquet"],
     "HumanEval/test.parquet": [f"{HF}/openai/openai_humaneval/resolve/main/openai_humaneval/test-00000-of-00001.parquet"],
-    "APIBench/huggingface_eval.json": [f"{GORILLA}/apibench/huggingface_eval.json"],
-    "APIBench/huggingface_api.jsonl": [f"{GORILLA}/api/huggingface_api.jsonl"],
-    "APIBench/tensorflow_eval.json": [f"{GORILLA}/apibench/tensorflow_eval.json"],
-    "APIBench/tensorflowhub_api.jsonl": [f"{GORILLA}/api/tensorflowhub_api.jsonl"],
-    "APIBench/torchhub_eval.json": [f"{GORILLA}/apibench/torchhub_eval.json"],
-    "APIBench/torchhub_api.jsonl": [f"{GORILLA}/api/torchhub_api.jsonl"],
+    "APIBench/huggingface_eval.json": gorilla("apibench/huggingface_eval.json"),
+    "APIBench/huggingface_api.jsonl": gorilla("api/huggingface_api.jsonl"),
+    "APIBench/tensorflow_eval.json": gorilla("apibench/tensorflow_eval.json"),
+    "APIBench/tensorflowhub_api.jsonl": gorilla("api/tensorflowhub_api.jsonl"),
+    "APIBench/torchhub_eval.json": gorilla("apibench/torchhub_eval.json"),
+    "APIBench/torchhub_api.jsonl": gorilla("api/torchhub_api.jsonl"),
 }
 ATTEMPTS = 5
 
