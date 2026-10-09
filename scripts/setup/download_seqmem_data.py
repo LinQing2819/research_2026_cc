@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -20,16 +21,42 @@ GITHUB_RAW = os.environ.get("GITHUB_RAW", "https://raw.githubusercontent.com").r
 GORILLA = f"{GITHUB_RAW}/ShishirPatil/gorilla/main/data"
 
 FILES = {
-    "MATH500/test-2.jsonl": f"{HF}/HuggingFaceH4/MATH-500/resolve/main/test.jsonl",
-    "MMLU-Pro/test.parquet": f"{HF}/TIGER-Lab/MMLU-Pro/resolve/main/data/test-00000-of-00001.parquet",
-    "HumanEval/test.parquet": f"{HF}/openai/openai_humaneval/resolve/main/openai_humaneval/test-00000-of-00001.parquet",
-    "APIBench/huggingface_eval.json": f"{GORILLA}/apibench/huggingface_eval.json",
-    "APIBench/huggingface_api.jsonl": f"{GORILLA}/api/huggingface_api.jsonl",
-    "APIBench/tensorflow_eval.json": f"{GORILLA}/apibench/tensorflow_eval.json",
-    "APIBench/tensorflowhub_api.jsonl": f"{GORILLA}/api/tensorflowhub_api.jsonl",
-    "APIBench/torchhub_eval.json": f"{GORILLA}/apibench/torchhub_eval.json",
-    "APIBench/torchhub_api.jsonl": f"{GORILLA}/api/torchhub_api.jsonl",
+    "MATH500/test-2.jsonl": [
+        f"{HF}/HuggingFaceH4/MATH-500/resolve/main/test.jsonl",
+        "https://www.modelscope.cn/datasets/AI-ModelScope/MATH-500/resolve/master/test.jsonl",
+    ],
+    "MMLU-Pro/test.parquet": [f"{HF}/TIGER-Lab/MMLU-Pro/resolve/main/data/test-00000-of-00001.parquet"],
+    "HumanEval/test.parquet": [f"{HF}/openai/openai_humaneval/resolve/main/openai_humaneval/test-00000-of-00001.parquet"],
+    "APIBench/huggingface_eval.json": [f"{GORILLA}/apibench/huggingface_eval.json"],
+    "APIBench/huggingface_api.jsonl": [f"{GORILLA}/api/huggingface_api.jsonl"],
+    "APIBench/tensorflow_eval.json": [f"{GORILLA}/apibench/tensorflow_eval.json"],
+    "APIBench/tensorflowhub_api.jsonl": [f"{GORILLA}/api/tensorflowhub_api.jsonl"],
+    "APIBench/torchhub_eval.json": [f"{GORILLA}/apibench/torchhub_eval.json"],
+    "APIBench/torchhub_api.jsonl": [f"{GORILLA}/api/torchhub_api.jsonl"],
 }
+ATTEMPTS = 5
+
+
+def download(url: str, dest: Path) -> None:
+    """Stream ``url`` to ``dest``. A dropped connection raises and leaves no file."""
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    tmp = dest.with_suffix(dest.suffix + ".part")
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response, tmp.open("wb") as out:
+            expected = int(response.headers.get("Content-Length") or 0)
+            written = 0
+            while True:
+                chunk = response.read(256 * 1024)
+                if not chunk:
+                    break
+                out.write(chunk)
+                written += len(chunk)
+        if expected and written != expected:
+            raise IOError(f"truncated: got {written} of {expected} bytes")
+        tmp.replace(dest)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def main() -> int:
@@ -38,20 +65,25 @@ def main() -> int:
     args = parser.parse_args()
 
     failed = []
-    for rel, url in FILES.items():
+    for rel, urls in FILES.items():
         dest = DATA_ROOT / rel
         if dest.exists() and dest.stat().st_size > 0 and not args.force:
             print(f"[skip] {rel}")
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        tmp = dest.with_suffix(dest.suffix + ".part")
-        print(f"[get ] {rel} <- {url}")
-        try:
-            urllib.request.urlretrieve(url, tmp)
-            tmp.replace(dest)
-        except Exception as exc:  # noqa: BLE001 - report and continue with other files
-            print(f"[fail] {rel}: {exc}", file=sys.stderr)
-            tmp.unlink(missing_ok=True)
+        last_error = "no url attempted"
+        for attempt in range(1, ATTEMPTS + 1):
+            url = urls[(attempt - 1) % len(urls)]
+            print(f"[get ] {rel} <- {url} (try {attempt}/{ATTEMPTS})")
+            try:
+                download(url, dest)
+                last_error = ""
+                break
+            except Exception as exc:  # noqa: BLE001 - try the next mirror or attempt
+                last_error = str(exc)
+                print(f"[fail] {rel}: {exc}", file=sys.stderr)
+                time.sleep(min(5 * attempt, 20))
+        if last_error:
             failed.append(rel)
     if failed:
         print(f"{len(failed)} file(s) failed: {failed}", file=sys.stderr)
