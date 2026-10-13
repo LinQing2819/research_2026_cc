@@ -70,6 +70,8 @@ def build_command(cfg: dict, cli_name: str, task: str, out_dir: Path, is_baselin
         "--embedding-model", embedding_model(cfg)[0],
         "--output-dir", str(out_dir),
         "--timing",
+        # Safe when starting fresh (no prior records); skips finished samples on restart.
+        "--resume",
     ]
     if task in DATA_OVERRIDES:
         cmd += ["--task-data-override", f"{task}={DATA_OVERRIDES[task]}"]
