@@ -18,11 +18,11 @@ mkdir -p "${HF_HOME}" "${TMPDIR}"
 MODEL="${MODEL:-Qwen/Qwen3-8B}"
 MODEL_PATH="${MODEL_PATH:-${ROOT}/models/${MODEL##*/}}"
 PORT="${PORT:-8000}"
-# 16384 is too short for DC-RS: the growing cheatsheet + 2048 completion
-# exceeds it mid-run. 24576 covers the observed ~18k requests with headroom
-# without doubling KV-cache pressure on a 24GB 4090.
-MAX_LEN="${MAX_LEN:-24576}"
-GPU_UTIL="${GPU_UTIL:-0.92}"
+# Qwen3-8B natively supports 32768. DC-RS cheatsheets grow past 22k tokens of
+# prompt alone, so 24576 still fails mid-run. If this OOMs on a 24GB card, fall
+# back to MAX_LEN=28672 GPU_UTIL=0.95.
+MAX_LEN="${MAX_LEN:-32768}"
+GPU_UTIL="${GPU_UTIL:-0.95}"
 
 VLLM="${VLLM:-vllm}"
 if [[ -x "${ROOT}/.venv-vllm/bin/vllm" && "${VLLM}" == vllm ]]; then

@@ -104,6 +104,9 @@ def build_env(cfg: dict, base_url: Optional[str] = None) -> dict:
         env["CUDA_VISIBLE_DEVICES"] = ""
     if embedding_model(cfg)[1]:
         env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1")
+    # SeqMem-Eval doubles sleep up to hours on every OpenRouter error, including
+    # non-retriable context-length 400s. Keep retries short for local vLLM.
+    env.setdefault("OPENROUTER_MAX_RETRIES", "3")
     return env
 
 
