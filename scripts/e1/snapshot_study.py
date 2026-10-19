@@ -382,6 +382,10 @@ def main():
         else:
             if args.only_task or args.only_method:
                 raise ValueError("Filters apply only to prepare; run/analyze use the frozen manifest.")
+            if not (base / "manifest.json").exists():
+                raise ValueError("No prepared manifest. Run prepare successfully first using the same "
+                                 "--config/--smoke. If screening rejects every cell, run "
+                                 "scripts/e0/audit.py and inspect screening.json; do not continue run/analyze.")
             manifest = json.loads((base / "manifest.json").read_text())
             if args.action == "run":
                 run(manifest, base, args.dry_run)

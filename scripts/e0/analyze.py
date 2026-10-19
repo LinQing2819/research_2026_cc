@@ -35,9 +35,19 @@ def _load_baselines(cfg, runs_root, tag, task):
     base = cfg["baseline"]
     frames = []
     for rep in range(base["repeats"]):
-        p = eval_log_path(run_dir(runs_root, tag, base["log_name"], rep), task, base["log_name"])
-        if p.exists():
-            frames.append(load_eval_log(p))
+        directory = run_dir(runs_root, tag, base["log_name"], rep)
+        p = eval_log_path(directory, task, base["log_name"])
+        if not p.exists() or not (directory / f"{task}.done").exists():
+            print(f"[skip] {task}/Baseline rep{rep}: missing log or completion marker")
+            return []
+        frame = load_eval_log(p)
+        if frame.empty:
+            print(f"[skip] {task}/Baseline rep{rep}: empty log")
+            return []
+        if frames and frame["qid"].tolist() != frames[0]["qid"].tolist():
+            print(f"[skip] {task}: baseline repetitions have different IDs/order")
+            return []
+        frames.append(frame)
     return frames
 
 
@@ -132,11 +142,15 @@ def main() -> int:
                           "n": len(b), "acc": 100 * b["correct"].mean()})
         for m in cfg["methods"]:
             name = m["log_name"]
-            p = eval_log_path(run_dir(runs_root, tag, name, 0), task, name)
-            if not p.exists():
-                print(f"[skip] {task}/{name}: no log")
+            directory = run_dir(runs_root, tag, name, 0)
+            p = eval_log_path(directory, task, name)
+            if not p.exists() or not (directory / f"{task}.done").exists():
+                print(f"[skip] {task}/{name}: missing log or completion marker")
                 continue
             method_df = add_pre_generation_features(load_eval_log(p))
+            if method_df.empty or method_df["qid"].tolist() != baselines[0]["qid"].tolist():
+                print(f"[skip] {task}/{name}: incomplete or mismatched baseline IDs/order")
+                continue
             repro.append({"task": task, "log_name": name, "rep": 0,
                           "n": len(method_df), "acc": 100 * method_df["correct"].mean()})
             paired = build_paired(baselines, method_df)
