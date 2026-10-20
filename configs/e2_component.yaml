@@ -1,0 +1,8 @@
+# V4 is fixed in docs/component_replay_protocol.md and code, not tunable here.
+# Resource locations can be moved; content identity remains the same.
+source: runs/e0/Qwen__Qwen3-8B/ExpeL-Online-ST/rep0/MMLU-Pro-Engineering_ExpeL-Online-ST_memory.jsonl
+data: data/seqmem/MMLU-Pro/test.parquet
+seqmem_root: third_party/SeqMem-Eval
+model_path: models/Qwen3-8B
+embedding_path: models/Qwen3-Embedding-0.6B
+base_url: http://127.0.0.1:8000
