@@ -200,7 +200,7 @@ sympy==1.14.0
     # via torch
 threadpoolctl==3.7.0
     # via scikit-learn
-tokenizers==0.22.2
+tokenizers==0.21.4
     # via transformers
 torch==2.14.1+cpu
     # via
@@ -215,7 +215,7 @@ tqdm==4.70.1
     #   openai
     #   sentence-transformers
     #   transformers
-transformers==4.57.6
+transformers==4.51.3
     # via
     #   -r requirements/client.in
     #   sentence-transformers

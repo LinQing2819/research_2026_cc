@@ -294,6 +294,9 @@ def test_t07_t11_t12_http_staged_smoke_resume_selection_and_report(tmp_path, fak
         with pytest.raises(Invalid, match="Test forbidden"):
             run_phase("test", manifest, directory, ledger, transport, official, gold)
         assert len(state["calls"]) == 2
+        with pytest.raises(Invalid, match="frozen dev smoke"):
+            run_phase("dev", manifest, directory, ledger, transport, official, gold)
+        assert len(state["calls"]) == 2
         run_phase("dev", manifest, directory, ledger, transport, official, gold, smoke=True)
         assert len(state["calls"]) == 58
     with Ledger(path, "id") as ledger:

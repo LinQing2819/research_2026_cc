@@ -297,6 +297,21 @@ def verified_selection(manifest, directory, ledger, official, gold):
 
 def run_phase(phase, manifest, directory, ledger, transport, official, gold, smoke=False):
     accepted_preflight(transport, manifest, directory, ledger)
+    if phase == "dev" and not smoke:
+        require((directory / "smoke.json").exists(),
+                "Run and accept the frozen dev smoke before full dev generation")
+        smoke_record = load_artifact(directory, "smoke.json")
+        smoke_qids = manifest["eligible"]["dev"][:4]
+        smoke_items = [item for item in manifest["schedule"]["dev"] if item["qid"] in set(smoke_qids)]
+        require(smoke_record["manifest"] == digest(manifest)
+                and smoke_record["preflight"] == ledger.meta("preflight")
+                and smoke_record["qids"] == smoke_qids
+                and smoke_record["rows"] == len(smoke_items),
+                "Smoke evidence is incomplete or bound to a different protocol state")
+        expected_results = [digest(ledger.result(item["key"])) for item in smoke_items]
+        require(all(ledger.result(item["key"]) is not None for item in smoke_items)
+                and smoke_record["results"] == expected_results,
+                "Smoke results are missing or changed")
     selection_hash = None
     if phase == "test":
         selection_hash = digest(verified_selection(manifest, directory, ledger, official, gold))
@@ -319,7 +334,9 @@ def run_phase(phase, manifest, directory, ledger, transport, official, gold, smo
         technical = dict(rows=len(values), qids=manifest["eligible"]["dev"][:4],
                          largest_input=max(v["usage"]["prompt_tokens"] for v in values),
                          length_finishes=sum(v["finish_reason"] == "length" for v in values),
-                         attempts=ledger.counts(), manifest=digest(manifest))
+                         attempts=ledger.counts(), manifest=digest(manifest),
+                         preflight=ledger.meta("preflight"),
+                         results=[digest(v) for v in values])
         # Counts can grow on later runs; the first smoke evidence remains immutable.
         if not (directory / "smoke.json").exists():
             write_artifact(directory, "smoke.json", technical)
