@@ -13,16 +13,29 @@ from .common import PARAMETERS, TASK, digest, require
 from .official import Official
 
 
-def load_public(path):
-    import pandas as pd
+def load_rows(path, columns):
+    """Parquet audit reads only the explicit public projection, never answer/CoT."""
     path = Path(path)
     if path.suffix in (".json", ".jsonl"):
-        rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        rows = [{k: v for k, v in json.loads(line).items() if k in columns}
+                for line in path.read_text().splitlines() if line.strip()]
     else:
-        rows = pd.read_parquet(path).to_dict("records")
-    rows = [r for r in rows if r.get("category") == "engineering"]
+        import pyarrow.parquet as pq
+        rows = pq.read_table(path, columns=columns).to_pylist()
+    return [r for r in rows if r.get("category") == "engineering"]
+
+
+def load_public_inputs(path):
+    rows = load_rows(path, ["question_id", "category", "question", "options"])
     public = [Official.public(r) for r in rows]
     require(public and len({r["qid"] for r in public}) == len(public), "Duplicate/empty public IDs")
+    return public
+
+
+def load_public(path):
+    """Scoring import, used only after the public-only qualification has passed."""
+    public = load_public_inputs(path)
+    rows = load_rows(path, ["question_id", "category", "answer", "answer_index"])
     gold = {}
     for row, item in zip(rows, public):
         require("question_id" in row, "Public question_id is required; no sequential fallback")

@@ -1,3 +1,3 @@
-"""memgate: per-query memory gating and regression monitoring for self-evolving agent memory."""
+"""memgate: frozen component-version experiments for self-evolving agent memory."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

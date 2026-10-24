@@ -13,6 +13,7 @@ from memgate.experiments.inference import authorized_projection, select, selecto
 from memgate.experiments.ledger import Ledger, Transport, payload, validate_response
 from memgate.experiments.official import Official
 from memgate.experiments.prompts import chat, prepare_question, sentinel_prompts
+from memgate.experiments.source import build_snapshots, duplicate_audit, split_public, validate_source
 from memgate.experiments.study import (check_service, collect, load_artifact, preflight,
                                       prepare, report, run_phase, verify_manifest,
                                       verified_selection, write_artifact)
@@ -265,6 +266,7 @@ def miniature_study(directory):
     manifest = dict(fingerprint={"model": {"weights": "hash"},
                                 "code": {"scripts/e2/server.py": "code"}},
                     files=hashes, eligible=qids, original_counts={"dev": 4, "test": 2},
+                    data_qualified_counts={"dev": 4, "test": 2}, data_exclusions={"dev": [], "test": []},
                     authorization=selector_authorizations(qids["dev"], questions), schedule={})
     for phase, ids in qids.items():
         manifest["schedule"][phase] = [
@@ -349,13 +351,24 @@ def test_t01_t10_real_prepare_no_models_and_fingerprint_guards(tmp_path, monkeyp
                     queries={r["qid"]: [0, 1] for r in split["dev"]+split["test"]},
                     texts_sha256=digest(texts), queries_sha256=digest(queries))
     monkeypatch.setattr(study, "make_embeddings", fake_embeddings)
-    fingerprint = dict(source=file_hash(source), model={}, code={})
+    old, new, splits = split_public(public)
+    prefix, raw, source_hash = validate_source(source, public, new)
+    prepared = dict(public=public, splits=splits, prefix_raw=raw,
+                    snapshots=build_snapshots(prefix, old, new),
+                    duplicate_audit=duplicate_audit(public[:new], splits))
+    excluded = [r["qid"] for r in splits["test"][:2]]
+    stable = dict(source_sha256=source_hash, data_sha256=file_hash(data), qualification=dict(
+        data_qualified_counts={"dev": 64, "test": 94}, exclusions={"dev": [], "test": excluded},
+        evaluation_splits={"dev": splits["dev"], "test": splits["test"][2:]}))
+    fingerprint = dict(source=file_hash(source), model={}, code={}, data_binding=digest(stable))
     directory = tmp_path / "artifacts"
     with Ledger(tmp_path / "ledger.sqlite", "id") as ledger:
-        manifest = prepare(cfg, directory, fingerprint, ledger)
+        manifest = prepare(cfg, directory, fingerprint, ledger, stable, prepared)
         assert manifest["boundaries"] == dict(total=969, old=193, new=581)
-        assert sum(len(v) for v in manifest["schedule"].values()) == 2240
-        assert prepare(cfg, directory, fingerprint, ledger) == manifest
+        assert sum(len(v) for v in manifest["schedule"].values()) == 2212
+        assert not any((directory / f"questions/{q}.json").exists() for q in excluded)
+        assert not set(excluded) & {r["qid"] for r in manifest["schedule"]["test"]}
+        assert prepare(cfg, directory, fingerprint, ledger, stable, prepared) == manifest
         assert ledger.counts()["attempts"] == 0
         with pytest.raises(Invalid, match="changed"):
             verify_manifest(directory, {**fingerprint, "new_parameter": 1}, ledger)

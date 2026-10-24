@@ -1,4 +1,4 @@
-# V4 is fixed in docs/component_replay_protocol.md and code, not tunable here.
+# V4 base + V5 amendment are fixed in docs/component_replay_protocol*.md and code.
 # Resource locations can be moved; content identity remains the same.
 source: runs/e0/Qwen__Qwen3-8B/ExpeL-Online-ST/rep0/MMLU-Pro-Engineering_ExpeL-Online-ST_memory.jsonl
 data: data/seqmem/MMLU-Pro/test.parquet

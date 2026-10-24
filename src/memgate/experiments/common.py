@@ -1,4 +1,4 @@
-"""Immutable inputs and protocol constants for the V4 frozen experiment."""
+"""Immutable inputs and protocol constants for the V5 frozen experiment."""
 from __future__ import annotations
 
 import hashlib
@@ -8,7 +8,12 @@ import os
 import tempfile
 from pathlib import Path
 
+from memgate import __version__ as SOFTWARE_VERSION
+
 ROOT = Path(__file__).resolve().parents[3]
+REVIEW_PATH = ROOT / "configs/e2_duplicate_review.json"
+APPROVED_REVIEW = "6f0cb49f6ee93941bd40675d7fe78ad9b6f8ffcea8fa090c70286e48cee35f12"
+LEGACY_IDENTITY = "b73bcc2a7f719c05bbbd71fa30242f222f81491180d1e881a5cc9e1a16ef976c"
 ARMS = ("OO", "ON", "NO", "NN", "ZE", "RZ", "ZZ")
 FACTORS = dict(zip(ARMS, (("old", "old"), ("old", "new"), ("new", "old"),
                          ("new", "new"), ("empty", "new"),
@@ -19,7 +24,8 @@ MODEL = "Qwen/Qwen3-8B"
 LIMITS = dict(context=8192, output=2048, safety=256, input=5888,
               rules=1024, experiences=3072, logical=2240, probes=2,
               retries=44, attempts=2286, per_request=3)
-PARAMETERS = dict(protocol="V4", task=TASK, model=MODEL, temperature=0.7,
+PARAMETERS = dict(protocol="V5", software=SOFTWARE_VERSION, approved_review=APPROVED_REVIEW,
+                  task=TASK, model=MODEL, temperature=0.7,
                   thinking=False, repeats=2, top_k=3, split_seed=20261020,
                   dev=64, test=96, old_fraction=0.2, new_fraction=0.6,
                   embedding="Qwen/Qwen3-Embedding-0.6B", delta=0.03,

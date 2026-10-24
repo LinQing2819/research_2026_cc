@@ -1,7 +1,10 @@
 """Single-writer, identity-level durable attempts, responses and accepted rows."""
 from __future__ import annotations
 
+import base64
 import fcntl
+import hashlib
+import http.client
 import json
 import socket
 import sqlite3
@@ -26,16 +29,49 @@ class Transport:
                                          headers={"Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                return {"status": response.status, "body": response.read().decode("utf-8")}
+                return self.read_response(response, response.status)
         except urllib.error.HTTPError as exc:
-            return {"status": exc.code, "body": exc.read().decode("utf-8")}
-        except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError) as exc:
-            return {"status": None, "body": "", "error": f"{type(exc).__name__}: {exc}"}
+            with exc:
+                return self.read_response(exc, exc.code)
+        except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
+            return {"status": None, "body": "", "transport_error": True,
+                    "error": f"{type(exc).__name__}: {exc}"}
+
+    @staticmethod
+    def read_response(response, status):
+        try:
+            data = response.read()
+        except (http.client.HTTPException, OSError) as exc:
+            partial = getattr(exc, "partial", b"")
+            return dict(status=status, body="", transport_error=True,
+                        error=f"{type(exc).__name__}: {exc}",
+                        partial_base64=base64.b64encode(partial).decode("ascii"),
+                        partial_sha256=hashlib.sha256(partial).hexdigest(),
+                        partial_bytes=len(partial), expected_remaining=getattr(exc, "expected", None))
+        try:
+            return dict(status=status, body=data.decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            # A complete invalid body is durable and never retried, including after restart.
+            return dict(status=status, body="", invalid_body=True,
+                        body_base64=base64.b64encode(data).decode("ascii"),
+                        error=f"{type(exc).__name__}: {exc}")
 
     def json(self, path, payload=None):
         raw = self.request(path, payload)
-        require(raw["status"] == 200, f"Metadata/tokenization failed at {path}: {raw}")
+        require(complete_success(raw), f"Metadata/tokenization failed at {path}: {raw}")
         return json.loads(raw["body"])
+
+
+def complete_success(raw):
+    return raw["status"] == 200 and not raw.get("transport_error") and not raw.get("invalid_body")
+
+
+def retryable(raw):
+    if raw.get("invalid_body"):
+        return False
+    status = raw["status"]
+    return (status is None or status == 429 or status >= 500
+            or (status == 200 and raw.get("transport_error", False)))
 
 
 def payload(ids, seed):
@@ -52,7 +88,7 @@ def payload(ids, seed):
 
 
 def validate_response(raw, request):
-    require(raw["status"] == 200, "No successful HTTP response")
+    require(complete_success(raw), "No complete successful HTTP response")
     try:
         body = json.loads(raw["body"])
         require(isinstance(body, dict), "Completion response must be an object")
@@ -78,8 +114,10 @@ class Ledger:
     transactions close the reserve/response/result crash windows. A copied run
     directory cannot reset this separate ledger in runs/.e2-ledgers.
     """
-    def __init__(self, path, identity, limits=None):
+    def __init__(self, path, identity, limits=None, *, expected_previous=None, data_binding=None):
         self.path = Path(path)
+        if expected_previous is not None:
+            require(self.path.is_file(), "Existing budget slot disappeared before migration")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.lock = self.path.with_suffix(".lock").open("a+b")
         try:
@@ -87,6 +125,9 @@ class Ledger:
         except BlockingIOError as exc:
             self.lock.close()
             raise Invalid("Another E2 writer holds this experiment identity") from exc
+        if expected_previous is not None and not self.path.is_file():
+            self.lock.close()
+            raise Invalid("Existing budget slot disappeared under migration lock")
         self.db = sqlite3.connect(self.path)
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
@@ -103,15 +144,28 @@ class Ledger:
         self.limits = {**LIMITS, **(limits or {})}
         try:
             previous_identity = self.meta("identity")
+            if expected_previous is not None:
+                require(previous_identity == expected_previous, "Ledger identity changed since audit")
             if previous_identity is not None and previous_identity != identity:
                 require(self.counts()["attempts"] == 0 and not self.results(),
                         "Experiment identity changed after a submitted attempt; revision/review required")
                 # Offline-only failed preparation may be corrected before any generation.
                 # Old artifacts stay in their content-addressed directory.
                 with self.db:
+                    provenance = dict(from_identity=previous_identity, to_identity=identity,
+                                      previous_meta={r["key"]: json.loads(r["value"])
+                                                     for r in self.db.execute("SELECT * FROM meta")},
+                                      attempts=0, results=0)
                     self.db.execute("DELETE FROM meta")
+                    values = dict(migration=provenance, identity=identity, limits=self.limits)
+                    if data_binding is not None:
+                        values["data_binding"] = data_binding
+                    self.db.executemany("INSERT INTO meta VALUES (?,?)",
+                                        [(k, canonical(v).decode()) for k, v in values.items()])
             self.bind("identity", identity)
             self.bind("limits", self.limits)
+            if data_binding is not None:
+                self.bind("data_binding", data_binding)
         except Exception:
             self.close()
             raise
@@ -205,15 +259,15 @@ class Ledger:
                 if row["raw"] is None:
                     continue  # Unknown dispatch counts and consumes a retry on recovery.
                 raw = json.loads(row["raw"])
-                if raw["status"] == 200:
+                if complete_success(raw):
                     parsed = validate_response(raw, request)
                     value = dict(binding=binding, attempt_id=row["id"],
                                  request_hash=digest(request), raw_hash=digest(raw),
                                  **parsed, **transform(parsed["text"]))
                     self.commit(key, value)
                     return value
-                require(raw["status"] is None or raw["status"] == 429 or raw["status"] >= 500,
-                        f"Non-retryable HTTP {raw['status']}: {raw['body'][:500]}")
+                require(retryable(raw),
+                        f"Non-retryable HTTP {raw['status']}: {raw.get('error', raw['body'])[:500]}")
             attempt = self.reserve(key, request, probe)
             raw = transport.request("/v1/completions", request)
             self.save_raw(attempt, raw)
@@ -232,6 +286,6 @@ class Ledger:
         require(expected == value and accepted["payload_hash"] == digest(request),
                 "Result differs from source response, scorer or input binding")
         earlier = [r for r in rows if r["id"] < accepted["id"] and r["raw"] is not None]
-        require(not any(json.loads(r["raw"])["status"] == 200 for r in earlier),
+        require(not any(complete_success(json.loads(r["raw"])) for r in earlier),
                 "Did not accept the first successful response")
         return value

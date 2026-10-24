@@ -1,117 +1,133 @@
-# memgate：自进化记忆的组件版本交叉研究
+# memgate · v0.2.0
 
-当前研究问题：**ExpeL 的旧规则＋新经历，是否优于旧整库、新整库和仅新经历？**
-A 是规则/成功经历双组件记忆，B 是受控版本交叉与组件选择。
-三轮评审经历否决、修订和复审后，放行一次固定预算的冻结机制 discovery；
-尚未证明效应、通用 selector、新颖性或在线回退有效。
+**当前科研问题：旧规则＋新经历，能否比完整旧记忆、完整新记忆、仅新经历更有效？**
 
-当前入口是 [E2 组件交叉实验](docs/E2组件交叉实验.md)：
-Engineering 单历史，20%/60% 快照，dev64/test96，七臂×两次回答。
-研究总上下文固定 8192，最终输入最多 5888，输出预留 2048，余量 256。
-E2 独立于旧 Runner，强制完整源审计、token IDs 检查、原子恢复、持久预算和先 dev 后 test。
-科研合同与逐轮评审见 [V4 协议](docs/component_replay_protocol.md)、
-[三轮评审决定](docs/reviews/decision.md)。
+| 版本/状态 | 含义 |
+|---|---|
+| 软件 | **0.2.0**，发布 tag：`v0.2.0` |
+| 科研协议 | **V5**：在 V4 上修订数据复核及无效主对照检查 |
+| 更新日期 | 2026-10-24 |
+| 旧服务器基线 | `b7990d1`，V4 prepare 因跨边界重复被拦截 |
+| 当前实验结果 | 交接记录称尚未生成，**待服务器账本核实**；没有可据此判断 ON 有效性的 E2 结果 |
+| 当前配置 | `configs/e2_component.yaml`；`e1_snapshot.yaml` 属于历史 E1 工具 |
+| 本地验证 | **86 tests passed**，含真实公开数据复核；服务器分阶段验收仍待执行 |
 
-历史路线及保留工具：
+版本号说明软件发布，协议号说明科研设计，Git 提交说明具体代码。
+以本页顶部、CLI `version` 和发布 tag 三者核对，不能只凭旧聊天里的命令判断当前版本。
 
-1. **E0 预实验**：在公开基准 [SeqMem-Eval](https://github.com/ShenGroup/SeqMem-Eval) 上，用官方实现跑 Baseline 与各记忆方法，按 qid 配对，检验
-   - **H1** 记忆导致的伤害率超过采样噪声底（excess hurt rate ≥ 5%）；
-   - **H2** 伤害可由生成前特征预测（AUC ≥ 0.65）；
-   - **H3** 影子配对探测 + anytime-valid 置信序列（PrPl-EB, Waudby-Smith & Ramdas 2024）在合理探测率下有可用分辨率。
-2. **E0 交接结果**：PARTIAL；有超额伤害，但当前生成前特征的预测能力未达门槛。
-   源实现和统计解释存在[已知问题](docs/review_2026-10-20.md)，不能把旧报告当成独立确认。
-3. **E1a（历史探索工具）**：验证版本回退是否有可恢复收益。复用 E0 日志的
-   20%/40%/60% 快照，在后续同一批题上冻结评估；60%–80% 选版本、80%–100% 测试。
-   使用官方 ExpRAG / AWM / ExpeL 与无记忆对照。完整命令和研究边界见
-   [E1 快照实验](docs/E1快照实验.md)。当前服务器没有通过其筛选的格子，不继续用该入口启动实验。
+## 要做什么
 
-## 目录结构
+已有 E0 让模型逐题答题，并积累了历史记忆。我们准备复用这些历史记录，
+冻结两个时点的记忆，再让 Qwen3-8B 对同一组后续问题重新答题。
+本次比较的是答题时提供的规则与成功案例，不训练模型权重。
 
+**A = ExpeL 的规则/成功经历双组件记忆。B = 组件的历史版本交叉与选择。**
+完整记忆变差时，问题可能集中在规则或经历中的一个组件；
+把整库一起回退可能同时丢掉有用的新经历。
+我们预先指定 ON（旧规则＋新经历），检验它是否值得在独立研究中继续确认。
+
+| 实验臂 | 规则 R | 经历 E | 用途 |
+|---|---|---|---|
+| OO | 旧 | 旧 | 完整旧快照 |
+| ON | 旧 | 新 | **预先指定的主组合** |
+| NO | 新 | 旧 | 反向交叉 |
+| NN | 新 | 新 | 完整新快照 |
+| ZE | 空 | 新 | 检查收益是否仅来自新经历 |
+| RZ | 新 | 空 | 规则控制 |
+| ZZ | 空 | 空 | 同 solver scaffold 的无记忆控制 |
+
+研究只先问固定 ON 是否同时优于 OO、NN、ZE。
+dev 上另比较完整快照选择与组件选择，两种选择器有相同预留 token 预算；
+它们是辅助结果，不能替代主机制对照。
+
+这是一条历史上的**机制 discovery**。整库回退、版本混搭、因子分析都不是已证明的新贡献。
+与 SeqMem-Eval、Faulty Memories、PACE 等近邻的对照和结论边界见
+[V4 基础设计](docs/component_replay_protocol.md) 与 [V5 修订](docs/component_replay_protocol_v5.md)。
+是否有足够的论文贡献，需要真实结果及独立确认，当前不能保证。
+
+## 为什么上一版停住
+
+V4 先检查构建题和测试题有没有重复，发现三对候选。
+我们在公开数据上重新核对后确认：
+
+| prefix ↔ test | 判定 | V5 冻结处理 |
+|---|---|---|
+| 11528 ↔ 12215 | 同题，频率单位换写 | 共同排除 test 12215 |
+| 11568 ↔ 11872 | 公式不同，属于误报 | 保留 test 11872 |
+| 11804 ↔ 11932 | 同一天线题，选项变化 | 共同排除 test 11932 |
+
+原始审计保持原样，新增复核记录绑定完整公共数据、候选审计和两端题目内容 hash。
+任何内容、候选或批准记录不匹配都会停止。不会按题号直接跳过检查。
+只排除评估端的两题，不补题、不删除历史记忆、不重建 E0。
+因此原定 dev64/test96 在重复处理后变成 dev64/test至多94；长度检查还可能共同排除题目。
+
+这次停止属于数据资格不合格，不是 E2 实验得到了负结果。
+历史诊断见 [停止原因](docs/e2_blocker_resolution_2026-10-24.md)；
+本轮三轮评审和实现验收见[评审决定](docs/reviews/2026-10-24_decision.md)。
+
+## 本轮能回答多大的效果
+
+每题七臂各独立回答两次，取平均正确率，不能挑较好的那次。
+主判据要求 ON 对 OO、NN、ZE 的三个同时区间下界都严格超过3个百分点。
+任一必要对照的上界严格低于3个百分点为本组主机制 NO_GO；其余为 INCONCLUSIVE。
+
+| 合格 test 数 | 普通差值主区间半宽 | 单项下界超过3pp所需观测差值 |
+|---:|---:|---:|
+| 96 | 约16.90pp | >19.90pp |
+| 94 | 约17.07pp | >20.07pp |
+
+**本轮适合检查可执行干预和大效应，无法可靠确认几个百分点的小提升。**
+低功效并非删掉两题造成。结果不确定时，不自动加题、换快照、增加重复或改统计方法。
+正式确认需另行设计按语义题组隔离、多历史和充分功效的实验。
+
+## 上下文与成本
+
+- 研究总窗口 **8192 = 输入5888 + 输出预留2048 + 余量256**。
+- 规则块最多1024 tokens，经历块最多3072；分别删末尾完整条目，不借额度。
+- 用实际完整 chat token IDs 计数；任一臂超限，该题七臂在生成前共同排除。
+- 三个主对照逐一检查实际输入差异；任一对照在全部 test 上相同则停止，先解释无效干预。
+- 无长度排除时计划 **2212** 个正式请求，smoke 包含在其中；探测最多2次，
+  全局传输重试最多44次，沿用总上限2286。节省的请求不用于扩跑。
+- 所有尝试发送前持久化计费，超时/中途断开也计数；中断后复用已保存结果。
+
+## 服务器下一步
+
+**先更新到 `v0.2.0` 并做无模型审计，审计通过才执行 prepare。**
+
+服务器是 `/data/zlq/research_2026_cc`，已知不能直接通过 GitHub SSH 更新。
+发布包为 `memgate-v0.2.0.bundle`；先上传该文件，再按
+[E2 操作说明](docs/E2组件交叉实验.md)用 bundle 更新，核对版本。
+不要重复安装整套环境，也不要重跑 E0/E1。
+
+本版流程为：
+
+```text
+version
+  → audit-data（无模型：数据、复核绑定、源完整性、旧账本）
+  → prepare（CPU：冻结检索、packing、主对照和请求集合）
+  → 启动 E2 vLLM
+  → preflight（实际服务/token IDs验收）
+  → smoke（正式dev前4题）
+  → run（剩余dev → 封存选择 → test → 分析）
 ```
-configs/                 实验配置（模型、任务、方法、阈值）
-src/memgate/             可复用的分析库（pip install -e .）
-  io/                    读取 SeqMem-Eval 的逐样本 eval log
-  features/              生成前特征（仅用当前与过去信息，无未来泄漏）
-  analysis/              配对翻转统计、可预测性 AUC、门控上界
-  monitor/               置信序列与影子探测模拟
-  experiments/           E2：冻结导入、打包、服务核验、持久账本和固定样本统计
-scripts/
-  setup/                 一次性准备（下载公开数据）
-  e0/                    E0：起 vLLM、跑实验矩阵、分析出报告
-  e1/                    E1a：筛选候选格、冻结快照、配对评估与选择
-  e2/                    当前 E2：prepare → preflight → smoke → run → analyze
-tests/                   单元测试（合成数据只在临时目录生成，不入库）
-third_party/SeqMem-Eval  官方基准（git submodule，固定 commit，不做修改）
 
-# 以下由脚本生成，已 gitignore：
-data/                    下载的公开数据集
-runs/<exp>/<model>/<method>/rep<k>/   原始运行输出与日志
-reports/<exp>/<model>/   分析表格、图、verdict.md
-```
+每一步通过后才执行下一步。依赖版本相同、单元测试通过、公开数据复核通过，
+都不能代替服务器真实源文件、tokenizer、显存或模型输出验收。
+执行参数、断点恢复与结果文件以 [E2 操作说明](docs/E2组件交叉实验.md) 为准。
+一次命令生成的审计证据在 `runs/e2_component/audit-data.json`。
+`status` 只读现有账本，显示尝试次数与已存产物；账本缺失/损坏不会当作零次。
+V4→V5 仅允许经核实的零 attempts、零 results；继续使用 `component-v4.sqlite`，
+不通过新建预算槽恢复额度。同一 V5 身份有已提交请求时仍可正常断点恢复。
 
-## 学校服务器（能访问镜像、家目录磁盘已满）
+## 历史版本
 
-已有环境继续当前研究请使用 [E2 运行说明](docs/E2组件交叉实验.md)。
-以下保留的是 E0 的历史安装/复现流程；E2 不要求重跑 E0。
+| 版本 | 状态 |
+|---|---|
+| `e09fe84` 及以前 · E0/E1 | 历史预实验与整库回退工具；存在[已知问题](docs/review_2026-10-20.md)，不作为当前执行入口 |
+| `c507d58` · 协议V4 | 冻结七臂实现，原三轮评审见[记录](docs/reviews/decision.md) |
+| `b7990d1` · 协议V4 | 增加 smoke 前置、对齐 tokenizer；真实数据资格未通过 |
+| **v0.2.0 · 协议V5** | 三轮设计评审通过；新增数据复核、版本/状态入口，修复截断响应和无效主对照；真实服务器分阶段待验收 |
 
-家目录所在分区只剩几 GB 时，把仓库放到数据盘（例如 `/data`），安装脚本会把 Miniconda、两个虚拟环境、模型、数据集和缓存都放在仓库目录里，并强制要求该目录所在磁盘至少有 40 GB 空闲。pip 走清华镜像，模型走 `hf-mirror.com`。
-
-```bash
-bash scripts/setup/install_on_server.sh
-screen -S vllm
-CUDA_VISIBLE_DEVICES=0 bash scripts/e0/serve_vllm.sh    # 只用 0 号卡，端口 8000
-# 另开 screen，等日志出现 Application startup complete：
-.venv-client/bin/python scripts/e0/run_matrix.py --smoke 5
-.venv-client/bin/python scripts/e0/analyze.py --smoke
-.venv-client/bin/python scripts/e0/run_matrix.py
-.venv-client/bin/python scripts/e0/analyze.py
-```
-
-实验进程的 embedding 固定在 CPU 上，GPU 只给这一个 vLLM。多卡时再改用 `scripts/e0/serve_vllm_multi.sh`。
-
-## 环境
-
-```bash
-git clone --recurse-submodules git@github.com:LinQing2819/research_2026_cc.git
-cd research_2026_cc
-# 若已 clone：git submodule update --init
-
-# GPU 机器上：SeqMem-Eval 环境 + 本包装进同一个环境
-conda env create -f third_party/SeqMem-Eval/environment.yml
-conda activate seqmem-eval
-pip install -r third_party/SeqMem-Eval/requirements.txt
-pip install vllm
-pip install -e ".[dev]"
-
-pytest            # 本地（无 GPU）也可以跑
-```
-
-## 运行 E0
-
-```bash
-# 1. 下载公开数据到 data/seqmem/
-python scripts/setup/download_seqmem_data.py
-
-# 2. 起本地 OpenAI 兼容服务（Qwen3-8B，单卡 24GB 以上）
-bash scripts/e0/serve_vllm.sh            # 另开一个终端保持运行
-
-# 3. 冒烟测试：每个任务只跑前 5 条，输出到 runs/e0_smoke/
-python scripts/e0/run_matrix.py --smoke 5
-python scripts/e0/analyze.py --smoke
-
-# 4. 完整矩阵（5 任务 × (Baseline×2 + 4 方法) = 30 个作业，断点续跑）
-python scripts/e0/run_matrix.py --dry-run     # 先看命令
-python scripts/e0/run_matrix.py
-python scripts/e0/analyze.py
-```
-
-`run_matrix.py` 支持 `--only-task` / `--only-method` 拆分作业；每个完成的作业会写 `.done` 标记，重复执行会跳过。
-`analyze.py` 会对照 SeqMem-Eval 论文 Table 3 检查复现准确率（容差见配置 `reproduction_tolerance`）。
-
-## E0 历史判定标准（不作为 E2 的放行条件）
-
-| 结果 | 含义 | 下一步 |
-| --- | --- | --- |
-| GO | H1 与 H2 均成立 | E1：逐查询门控 + 版本选择 + 监控 |
-| PARTIAL | 有伤害但不可预测 | 侧重版本回退 + anytime-valid 监控 |
-| NO-GO | 伤害不超过噪声底 | 换方向 |
+代码位于 `src/memgate/experiments/`、入口位于 `scripts/e2/`。
+原始运行产物、模型和账本不进入 Git。官方 `third_party/SeqMem-Eval` 子模块保持原提交。
+软件改动和验证范围见 [CHANGELOG](CHANGELOG.md)；历史 E0/E1 问题未在这次发布中全部修复。

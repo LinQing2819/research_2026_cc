@@ -1,9 +1,10 @@
-"""Orchestration for the single pre-registered V4 frozen discovery."""
+"""Orchestration for the single pre-registered V5 frozen discovery."""
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import sqlite3
 import subprocess
 import time
 from pathlib import Path
@@ -11,16 +12,16 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from .common import (ARMS, LIMITS, PARAMETERS, ROOT, Invalid, atomic_json, digest,
+from .common import (ARMS, LIMITS, PARAMETERS, ROOT, SOFTWARE_VERSION, Invalid, atomic_json, digest,
                      file_hash, logical_key, read_json, require, seal, stable_seed,
                      tree_hashes, unseal, versions)
 from .inference import (analyze_scores, authorized_projection, select,
                         selector_authorizations, sensitivity)
-from .ledger import Ledger, Transport, payload
+from .ledger import Ledger, Transport, complete_success, payload
 from .official import Official
 from .prompts import checked_vectors, prepare_question, sentinel_prompts
-from .source import (build_snapshots, duplicate_audit, load_public,
-                     split_public, validate_source)
+from .qualification import audit_data, readonly_ledger
+from .source import load_public, split_public
 
 
 def configuration(path):
@@ -30,10 +31,12 @@ def configuration(path):
     return {k: (ROOT / v).resolve() if k != "base_url" else v for k, v in cfg.items()}
 
 
-def input_fingerprint(cfg):
+def input_fingerprint(cfg, stable):
     files = list((ROOT / "src/memgate/experiments").glob("*.py"))
     files += list((ROOT / "scripts/e2").glob("*.py")) + list((ROOT / "scripts/e2").glob("*.sh"))
-    files += [ROOT / "docs/component_replay_protocol.md"]
+    files += [ROOT / "docs/component_replay_protocol.md", ROOT / "docs/component_replay_protocol_v5.md",
+              ROOT / "configs/e2_duplicate_review.json", ROOT / "pyproject.toml",
+              ROOT / "src/memgate/__init__.py"]
     official_names = ["methods/expel_online_st.py", "tasks/task_mmlu_pro.py",
                       "tasks/math_answer_utils.py", "prompts/prompt_templates.json",
                       "utils/embedder.py"]
@@ -44,7 +47,10 @@ def input_fingerprint(cfg):
     dirty = subprocess.check_output(["git", "-C", str(cfg["seqmem_root"]), "status", "--porcelain"],
                                     text=True).strip()
     print("Verifying source, code and local model content hashes (no model calls)...", flush=True)
-    return dict(parameters=PARAMETERS, source=file_hash(cfg["source"]), data=file_hash(cfg["data"]),
+    require(file_hash(cfg["source"]) == stable["source_sha256"]
+            and file_hash(cfg["data"]) == stable["data_sha256"], "Inputs changed after data audit")
+    return dict(parameters=PARAMETERS, data_binding=digest(stable),
+                source=stable["source_sha256"], data=stable["data_sha256"],
                 code=code, official=dict(files=official, commit=commit, dirty=dirty),
                 model=tree_hashes(cfg["model_path"]), embedding=tree_hashes(cfg["embedding_path"]),
                 client_versions=versions(["transformers", "tokenizers", "sentence-transformers",
@@ -91,7 +97,25 @@ def make_embeddings(path, snapshots, split, official):
                 dimension=vectors.shape[1], seconds=time.perf_counter()-started)
 
 
-def prepare(cfg, directory, fingerprint, ledger):
+def intervention_summary(questions, qids):
+    changes = [questions[q]["change"] for q in qids]
+    n = len(qids)
+    controls = {}
+    for name, arm in (("C1_ON_OO", "OO"), ("C2_ON_NN", "NN"), ("C3_ON_ZE", "ZE")):
+        count = sum(questions[q]["prompts"]["ON"]["ids"] != questions[q]["prompts"][arm]["ids"]
+                    for q in qids)
+        controls[name] = dict(different=count, n=n, fraction=count / n if n else 0)
+    return dict(eligible_test=n, main_controls=controls,
+                main_controls_valid=n > 0 and all(c["different"] > 0 for c in controls.values()),
+                rules_changed=sum(c["packed_rules"] for c in changes),
+                experiences_changed=sum(c["packed_experiences"] for c in changes),
+                jointly_changed=sum(c["packed_rules"] and c["packed_experiences"] for c in changes))
+
+
+def prepare(cfg, directory, fingerprint, ledger, stable, prepared):
+    require(fingerprint["data_binding"] == digest(stable)
+            and file_hash(cfg["source"]) == stable["source_sha256"]
+            and file_hash(cfg["data"]) == stable["data_sha256"], "Inputs changed during prepare")
     manifest_path = directory / "manifest.json"
     if manifest_path.exists():
         return verify_manifest(directory, fingerprint, ledger)
@@ -99,35 +123,37 @@ def prepare(cfg, directory, fingerprint, ledger):
     official = Official(cfg["seqmem_root"])
     public, gold = load_public(cfg["data"])
     old, new, splits = split_public(public)
-    prefix, raw_prefix, source_hash = validate_source(cfg["source"], public, new)
-    require(source_hash == fingerprint["source"], "Source changed during prepare")
-    snapshots = build_snapshots(prefix, old, new)
+    require(public == prepared["public"] and splits == prepared["splits"],
+            "Scoring import public inputs changed")
+    raw_prefix, snapshots = prepared["prefix_raw"], prepared["snapshots"]
+    qualification = stable["qualification"]
+    evaluation = qualification["evaluation_splits"]
     hashes = {}
     artifacts = dict(public=public, scoring_gold=gold, prefix_raw=raw_prefix,
                      old_prefix_raw="".join(raw_prefix.splitlines(keepends=True)[:old]),
-                     snapshots=snapshots, splits=splits)
+                     snapshots=snapshots, splits=splits, evaluation_splits=evaluation,
+                     data_qualification=stable)
     for name, value in artifacts.items():
         hashes[name + ".json"] = write_artifact(directory, name + ".json", value)
-    audit = duplicate_audit(public[:new], splits)
+    audit = prepared["duplicate_audit"]
     hashes["duplicate_audit.json"] = write_artifact(directory, "duplicate_audit.json", audit)
-    require(audit["qualified"], f"Cross-boundary duplicate candidates require review: {directory / 'duplicate_audit.json'}")
     tokenizer = load_tokenizer(cfg["model_path"])
     cache = directory / "embeddings.json"
     if cache.exists():
         embeddings = load_artifact(directory, "embeddings.json")
     else:
         print("Encoding frozen historical questions and public queries on CPU...", flush=True)
-        embeddings = make_embeddings(cfg["embedding_path"], snapshots, splits, official)
+        embeddings = make_embeddings(cfg["embedding_path"], snapshots, evaluation, official)
         write_artifact(directory, "embeddings.json", embeddings)
     require(embeddings["texts_sha256"] == digest([r["question"] for r in snapshots["new"]["pool"]]),
             "Embedding cache source mismatch")
-    require(embeddings["queries_sha256"] == digest([official.query(r) for r in splits["dev"]+splits["test"]]),
+    require(embeddings["queries_sha256"] == digest([official.query(r) for r in evaluation["dev"]+evaluation["test"]]),
             "Embedding cache query mismatch")
     hashes["embeddings.json"] = file_hash(cache)
     vectors = {"new": embeddings["pool"],
                "old": embeddings["pool"][:len(snapshots["old"]["pool"])]}
     questions, eligible = {}, {}
-    for phase, items in splits.items():
+    for phase, items in evaluation.items():
         eligible[phase] = []
         for row in items:
             name = f"questions/{row['qid']}.json"
@@ -145,12 +171,10 @@ def prepare(cfg, directory, fingerprint, ledger):
                 eligible[phase].append(row["qid"])
         print(f"{phase}: eligible {len(eligible[phase])}/{len(items)}", flush=True)
     authorization = selector_authorizations(eligible["dev"], questions)
-    changes = [questions[q]["change"] for q in eligible["test"]]
-    intervention = dict(eligible_test=len(changes),
-                        rules_changed=sum(c["packed_rules"] for c in changes),
-                        experiences_changed=sum(c["packed_experiences"] for c in changes),
-                        jointly_changed=sum(c["packed_rules"] and c["packed_experiences"] for c in changes))
+    intervention = intervention_summary(questions, eligible["test"])
     hashes["intervention.json"] = write_artifact(directory, "intervention.json", intervention)
+    require(intervention["main_controls_valid"],
+            "DEGENERATE_MAIN_CONTROL: inspect intervention.json; no generation allowed")
     require(intervention["jointly_changed"] > 0, "No jointly changed test intervention; inspect intervention.json")
     schedule = {}
     for phase, qids in eligible.items():
@@ -165,7 +189,13 @@ def prepare(cfg, directory, fingerprint, ledger):
     manifest = dict(identity=digest(fingerprint), fingerprint=fingerprint, files=hashes,
                     boundaries=dict(total=len(public), old=old, new=new),
                     eligible=eligible, original_counts={"dev": 64, "test": 96},
+                    data_qualified_counts=qualification["data_qualified_counts"],
+                    data_exclusions=qualification["exclusions"],
                     authorization=authorization, schedule=schedule)
+    require(file_hash(cfg["source"]) == stable["source_sha256"]
+            and file_hash(cfg["data"]) == stable["data_sha256"], "Inputs changed while preparing")
+    require(all(file_hash(ROOT / name) == expected for name, expected in fingerprint["code"].items()),
+            "Code/protocol/review changed while preparing")
     write_artifact(directory, "manifest.json", manifest)
     ledger.bind("manifest", digest(manifest))
     return manifest
@@ -381,8 +411,13 @@ def report(manifest, directory, ledger, transport, official, gold):
     analysis.update(manifest=digest(manifest), selection=selection,
                     selection_sha256=shash, sensitivity=sensitivity(analysis, mean_reserved),
                     sensitivity_note="Marginal 80% power scenarios, not joint GO power or an information-theoretic lower bound; observed normal scenarios are exploratory",
-                    coverage={p: dict(eligible=len(manifest["eligible"][p]), original=n)
+                    coverage={p: dict(eligible=len(manifest["eligible"][p]), original=n,
+                                      data_qualified=manifest["data_qualified_counts"][p],
+                                      duplicate_excluded=n-manifest["data_qualified_counts"][p],
+                                      context_excluded=manifest["data_qualified_counts"][p]
+                                      -len(manifest["eligible"][p]))
                               for p, n in manifest["original_counts"].items()},
+                    data_exclusions=manifest["data_exclusions"],
                     attempt_counts=ledger.counts(), result_sha256=digest(dev+test),
                     fixed_policy_selection_cost=0,
                     actual_accepted_usage={k: sum(r["usage"][k] for r in dev+test)
@@ -404,6 +439,9 @@ def report(manifest, directory, ledger, transport, official, gold):
     for row in ledger.db.execute("SELECT raw FROM attempts"):
         raw = json.loads(row["raw"]) if row["raw"] else {}
         try:
+            if not complete_success(raw):
+                unknown += 1
+                continue
             usage = json.loads(raw["body"])["usage"]
             raw_usage.append(usage)
         except (KeyError, TypeError, json.JSONDecodeError):
@@ -414,7 +452,7 @@ def report(manifest, directory, ledger, transport, official, gold):
         reserved_output_token_upper_bound=ledger.counts()["attempts"] * 2048)
     write_artifact(directory, "analysis.json", analysis)
     lines = [
-        "# E2 V4 frozen discovery", "",
+        "# E2 V5 frozen discovery · software " + SOFTWARE_VERSION, "",
         f"Mechanism: **{analysis['mechanism_status']}**, eligible test n={analysis['n']}.",
         f"S={selection['selectors']['S']['arm']}; F={selection['selectors']['F']['arm']}.",
         "Conditional on this history, fixed question set, packing and frozen dev selection.",
@@ -433,26 +471,58 @@ def report(manifest, directory, ledger, transport, official, gold):
     return analysis
 
 
+def version_info():
+    commit = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    dirty = bool(subprocess.check_output(
+        ["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
+    return dict(software=SOFTWARE_VERSION, protocol=PARAMETERS["protocol"], git_commit=commit,
+                dirty=dirty, budget_slot="runs/.e2-ledgers/component-v4.sqlite")
+
+
+def status(ledger_path, runs_root):
+    result = version_info()
+    state = readonly_ledger(ledger_path)
+    result["ledger"] = state
+    directory = runs_root / state["identity"]
+    result["artifacts"] = {name: (directory / f"{name}.json").exists()
+                           for name in ("manifest", "intervention", "preflight", "smoke", "selection", "analysis")}
+    result["artifacts_note"] = "Presence only; execution commands verify seals and ledger bindings"
+    result["directory"] = str(directory)
+    return result
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="E2 V4 frozen component replay (no curator or online update)")
-    parser.add_argument("command", choices=["prepare", "preflight", "smoke", "dev", "test", "run", "analyze"])
+    parser = argparse.ArgumentParser(description="E2 V5 frozen component replay (no curator or online update)")
+    parser.add_argument("--version", action="version", version=f"memgate {SOFTWARE_VERSION} / V5")
+    parser.add_argument("command", choices=["version", "status", "audit-data", "prepare",
+                                          "preflight", "smoke", "dev", "test", "run", "analyze"])
     parser.add_argument("--config", type=Path, default=ROOT / "configs/e2_component.yaml")
     args = parser.parse_args(argv)
     # Prevent accidental embedding GPU use even when CUDA is available in the client environment.
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     os.environ["HF_HUB_OFFLINE"] = "1"
     try:
+        ledger_path = ROOT / "runs/.e2-ledgers/component-v4.sqlite"
+        runs_root = ROOT / "runs/e2_component"
+        if args.command in ("version", "status"):
+            value = version_info() if args.command == "version" else status(ledger_path, runs_root)
+            print(json.dumps(value, ensure_ascii=False, indent=2), flush=True)
+            return 0
         cfg = configuration(args.config)
-        fingerprint = input_fingerprint(cfg)
+        stable, prepared, state = audit_data(cfg, ledger_path, runs_root)
+        if args.command == "audit-data":
+            return 0
+        fingerprint = input_fingerprint(cfg, stable)
         identity = digest(fingerprint)
         directory = ROOT / "runs/e2_component" / identity
         # One study slot. Changing code after any submitted call cannot silently start a new study.
-        with Ledger(ROOT / "runs/.e2-ledgers/component-v4.sqlite", identity) as ledger:
+        with Ledger(ledger_path, identity, expected_previous=state["identity"],
+                    data_binding=digest(stable)) as ledger:
             directory.mkdir(parents=True, exist_ok=True)
             atomic_json(ROOT / "runs/e2_component/active.json", seal({"identity": identity}), immutable=False)
             print(f"E2 artifacts: {directory}", flush=True)
             if args.command == "prepare":
-                manifest = prepare(cfg, directory, fingerprint, ledger)
+                manifest = prepare(cfg, directory, fingerprint, ledger, stable, prepared)
                 print(f"Prepared and sealed {len(manifest['schedule']['dev']) + len(manifest['schedule']['test'])} logical calls.", flush=True)
                 return 0
             manifest = verify_manifest(directory, fingerprint, ledger)
@@ -470,6 +540,6 @@ def main(argv=None):
             if args.command in ("analyze", "run"):
                 report(manifest, directory, ledger, transport, official, gold)
             return 0
-    except (Invalid, OSError, KeyError, ValueError) as exc:
+    except (Invalid, OSError, KeyError, ValueError, sqlite3.Error) as exc:
         print(f"ERROR: {exc}", flush=True)
         return 2

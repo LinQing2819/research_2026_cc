@@ -1,0 +1,39 @@
+{
+  "schema": "e2-public-review-v1",
+  "protocol": "V5",
+  "content_schema": "{qid,question,options}; canonical JSON; source and option order preserved",
+  "public_sha256": "478bd4297ac233c672dfc934cb1ab2c1c01c1d3740005c10222c270ae6852e20",
+  "audit_sha256": "fa0a1f1d11e97a702a3a78620d88a261b7778fb4e6cc350211560f41a797d7fe",
+  "reviewed_at": "2026-10-24",
+  "evidence": [
+    "https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro",
+    "docs/reviews/2026-10-24_r2_statistics.md",
+    "docs/reviews/2026-10-24_r3_execution.md"
+  ],
+  "decisions": [
+    {
+      "left": ["prefix", "11528"],
+      "right": ["test", "12215"],
+      "left_public_sha256": "ad27e48e4333ef3f125dfe328d6ae1fe8424ce5d154755014da8afc2aed54b5a",
+      "right_public_sha256": "3a412aec8a9c7dbaee757f0c5d14c247d1d424aca8b43fd3116d2c9ac5df70ed",
+      "decision": "duplicate",
+      "reason": "Same copper-plate absorbed-power problem; 1000 Mc/sec equals 1 GHz; changed option notation does not change the problem."
+    },
+    {
+      "left": ["prefix", "11568"],
+      "right": ["test", "11872"],
+      "left_public_sha256": "1b77d967cd243ccaf1a2f1e80584715d566b5e5fc15c69e633689a9ee7eb64b3",
+      "right_public_sha256": "b8d17eb96cd12d880a272abcca22f51445b1455fd141a618318ec0cd49badf6f",
+      "decision": "distinct",
+      "reason": "Different Laplace expressions: 1/[s(s^2+1)] versus 1/(s-1)^2; shared wording does not imply the same question."
+    },
+    {
+      "left": ["prefix", "11804"],
+      "right": ["test", "11932"],
+      "left_public_sha256": "ebad516149f261284be3af6d8a143bf45f9402e07d477313bc38e1879528852e",
+      "right_public_sha256": "3883435ab5938164a15306b93d53c2aede3e27c7f67fd7adac2f73a4c1def21b",
+      "decision": "duplicate",
+      "reason": "Same maximum effective aperture question with directivity 50 and wavelength 4m; changed choices do not change the problem."
+    }
+  ]
+}
