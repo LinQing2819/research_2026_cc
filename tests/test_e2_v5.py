@@ -335,8 +335,8 @@ def test_a03_a10_prepare_stops_before_probes_and_reports_common_exclusions(revie
 
 def test_a12_versions_and_model_free_cli(capsys):
     import memgate
-    assert memgate.__version__ == SOFTWARE_VERSION == "0.2.0"
-    assert 'version = "0.2.0"' in (ROOT / "pyproject.toml").read_text()
+    assert memgate.__version__ == SOFTWARE_VERSION == "0.2.1"
+    assert f'version = "{SOFTWARE_VERSION}"' in (ROOT / "pyproject.toml").read_text()
     assert study.main(["version", "--config", "/nonexistent"]) == 0
     assert json.loads(capsys.readouterr().out)["protocol"] == "V5"
 

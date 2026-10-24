@@ -2,13 +2,15 @@
 # Single 4090: explicit 8192 total window, one active sequence, CPU client retrieval.
 set -euo pipefail
 E2_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-E2_PYTHON="${E2_PYTHON:-${E2_ROOT}/.venv/bin/python}"
+source "${E2_ROOT}/scripts/e2/env.sh"
+E2_PYTHON="${E2_PYTHON:-${E2_ROOT}/.venv-vllm/bin/python}"
 E2_MODEL_PATH="${E2_MODEL_PATH:-${E2_ROOT}/models/Qwen3-8B}"
-export HF_HOME="${HF_HOME:-${E2_ROOT}/.cache/huggingface}"
-export TMPDIR="${TMPDIR:-${E2_ROOT}/.cache/tmp}"
 export HF_HUB_OFFLINE=1
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
-mkdir -p "${HF_HOME}" "${TMPDIR}"
+if [[ ! -x "${E2_PYTHON}" ]]; then
+  printf 'Missing vLLM interpreter: %s; set E2_PYTHON to .venv-vllm/bin/python.\n' "${E2_PYTHON}" >&2
+  exit 2
+fi
 exec "${E2_PYTHON}" "${E2_ROOT}/scripts/e2/server.py" \
   --model "${E2_MODEL_PATH}" \
   --served-model-name Qwen/Qwen3-8B \

@@ -1,16 +1,16 @@
-# memgate · v0.2.0
+# memgate · v0.2.1
 
 **当前科研问题：旧规则＋新经历，能否比完整旧记忆、完整新记忆、仅新经历更有效？**
 
 | 版本/状态 | 含义 |
 |---|---|
-| 软件 | **0.2.0**，发布 tag：`v0.2.0` |
+| 软件 | **0.2.1**，发布 tag：`v0.2.1` |
 | 科研协议 | **V5**：在 V4 上修订数据复核及无效主对照检查 |
 | 更新日期 | 2026-10-24 |
 | 旧服务器基线 | `b7990d1`，V4 prepare 因跨边界重复被拦截 |
 | 当前实验结果 | 交接记录称尚未生成，**待服务器账本核实**；没有可据此判断 ON 有效性的 E2 结果 |
 | 当前配置 | `configs/e2_component.yaml`；`e1_snapshot.yaml` 属于历史 E1 工具 |
-| 本地验证 | **86 tests passed**，含真实公开数据复核；服务器分阶段验收仍待执行 |
+| 本地验证 | v0.2.0 全套 **86 tests passed**；本版环境补丁另做定向验证，见 CHANGELOG；服务器分阶段仍待验收 |
 
 版本号说明软件发布，协议号说明科研设计，Git 提交说明具体代码。
 以本页顶部、CLI `version` 和发布 tag 三者核对，不能只凭旧聊天里的命令判断当前版本。
@@ -92,12 +92,27 @@ V4 先检查构建题和测试题有没有重复，发现三对候选。
 
 ## 服务器下一步
 
-**先更新到 `v0.2.0` 并做无模型审计，审计通过才执行 prepare。**
+**先更新到 `v0.2.1`，加载数据盘环境，再做无模型审计；审计通过才执行 prepare。**
 
 服务器是 `/data/zlq/research_2026_cc`，已知不能直接通过 GitHub SSH 更新。
-发布包为 `memgate-v0.2.0.bundle`；先上传该文件，再按
+发布包为 `memgate-v0.2.1.bundle`；先上传该文件，再按
 [E2 操作说明](docs/E2组件交叉实验.md)用 bundle 更新，核对版本。
 不要重复安装整套环境，也不要重跑 E0/E1。
+
+服务器客户端为 `.venv-client`，生成服务为 **`.venv-vllm`**；服务器不存在 `.venv`。
+家目录不可写或空间不足，每次 SSH / 新 Bash shell / screen 窗口先运行：
+
+```bash
+cd /data/zlq/research_2026_cc
+source scripts/e2/env.sh
+```
+
+该脚本将 HuggingFace、pip、临时文件、matplotlib 和 XDG 配置/缓存放到仓库的数据盘目录。
+prepare 通过后，服务启动命令为：
+
+```bash
+E2_PYTHON=.venv-vllm/bin/python CUDA_VISIBLE_DEVICES=0 bash scripts/e2/serve_vllm.sh
+```
 
 本版流程为：
 
@@ -127,6 +142,7 @@ V4→V5 仅允许经核实的零 attempts、零 results；继续使用 `componen
 | `c507d58` · 协议V4 | 冻结七臂实现，原三轮评审见[记录](docs/reviews/decision.md) |
 | `b7990d1` · 协议V4 | 增加 smoke 前置、对齐 tokenizer；真实数据资格未通过 |
 | **v0.2.0 · 协议V5** | 三轮设计评审通过；新增数据复核、版本/状态入口，修复截断响应和无效主对照；真实服务器分阶段待验收 |
+| **v0.2.1 · 协议V5** | 修正服务器解释器与缓存初始化；科研设计不变，在首次生成前升级 |
 
 代码位于 `src/memgate/experiments/`、入口位于 `scripts/e2/`。
 原始运行产物、模型和账本不进入 Git。官方 `third_party/SeqMem-Eval` 子模块保持原提交。
