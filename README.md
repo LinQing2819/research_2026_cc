@@ -1,23 +1,40 @@
-# memgate · v0.2.1
+# memgate · E3-R1（E2执行版本 v0.2.1）
 
-**当前科研问题：旧规则＋新经历，能否比完整旧记忆、完整新记忆、仅新经历更有效？**
+**当前阶段：用已完成的E2逐题数据，检验“实际进入提示的组件表示”能否改善有限预算下的配置选择。新增模型调用为0。**
 
 | 版本/状态 | 含义 |
 |---|---|
-| 软件 | **0.2.1**，发布 tag：`v0.2.1` |
-| 科研协议 | **V5**：在 V4 上修订数据复核及无效主对照检查 |
-| 更新日期 | 2026-10-24 |
-| 旧服务器基线 | `b7990d1`，V4 prepare 因跨边界重复被拦截 |
-| 当前实验结果 | 交接记录称尚未生成，**待服务器账本核实**；没有可据此判断 ON 有效性的 E2 结果 |
-| 当前配置 | `configs/e2_component.yaml`；`e1_snapshot.yaml` 属于历史 E1 工具 |
-| 本地验证 | v0.2.0 全套 **86 tests passed**；本版环境补丁另做定向验证，见 CHANGELOG；服务器分阶段仍待验收 |
+| E2执行软件 | **0.2.1**，tag：`v0.2.1`；服务器已在`9d9ecd9`完成本轮 |
+| 科研协议 | 已完成E2为**V5**；当前离线筛查为**E3-R1** |
+| 更新日期 | 2026-10-27 |
+| E2结果 | dev64/test94、2212正式请求完成；**INCONCLUSIVE**，S=F=OO |
+| 当前状态 | E3实现及合成验收通过；待服务器导出完整逐题数据，尚无真实E3回放结果 |
+| 当前入口 | `scripts/e3/replay.py`；服务器使用单文件`e3-r1-tools.pyz`只读导出 |
+| 本地验证 | E3新增**13项通过**，含打包入口端到端；E2原全套86项结果见CHANGELOG |
 
 版本号说明软件发布，协议号说明科研设计，Git 提交说明具体代码。
 以本页顶部、CLI `version` 和发布 tag 三者核对，不能只凭旧聊天里的命令判断当前版本。
 
-## 要做什么
+## 当前要做什么
 
-已有 E0 让模型逐题答题，并积累了历史记忆。我们准备复用这些历史记录，
+E2的ON准确率57.45%，OO为50.00%、NN为49.47%、ZE为50.53%、ZZ为52.66%。
+三个主对照区间均跨零，不能证明ON有效；dev选择器没有选中ON，
+也不能把test上最高分的固定配置称为可泛化的自动选择方法。
+
+经[R1–R9修订与评审](docs/reviews/2026-10-26/convergence.md)，
+当前先比较六种同预算方法：实际提示表示、检索后未packing表示、原始存储表示、
+只加性、独立候选和均匀分配。固定七臂，用原dev搜索/复核，再看原test上的描述性表现。
+这是已知表的回顾性筛查，不重新计算E2显著性，不把16次读取顺序视为16条独立历史。
+
+[E3协议](docs/e3_replay_protocol.md)冻结算法、预算、访问边界和停止条件；
+[运行说明](docs/E3离线回放.md)提供上传单文件、只读导出、取回三步命令。
+导出核对原始响应和评分，之后本机完成全部回放，不需要vLLM或更新服务器仓库。
+原复杂矩阵方案[CVS-P2](docs/research_component_validation_2026-10-26.md)仍保留HOLD记录，
+完整HbBoPs强基线和多历史新题确认尚未完成，不宣称新方法已成立或已可投稿。
+
+## 已完成的E2研究问题
+
+已有 E0 让模型逐题答题，并积累了历史记忆。E2复用这些历史记录，
 冻结两个时点的记忆，再让 Qwen3-8B 对同一组后续问题重新答题。
 本次比较的是答题时提供的规则与成功案例，不训练模型权重。
 
@@ -92,47 +109,23 @@ V4 先检查构建题和测试题有没有重复，发现三对候选。
 
 ## 服务器下一步
 
-**先更新到 `v0.2.1`，加载数据盘环境，再做无模型审计；审计通过才执行 prepare。**
+**现在只导出已完成的E2记录，不再运行prepare、preflight、smoke或run。**
 
-服务器是 `/data/zlq/research_2026_cc`，已知不能直接通过 GitHub SSH 更新。
-发布包为 `memgate-v0.2.1.bundle`；先上传该文件，再按
-[E2 操作说明](docs/E2组件交叉实验.md)用 bundle 更新，核对版本。
-不要重复安装整套环境，也不要重跑 E0/E1。
-
-服务器客户端为 `.venv-client`，生成服务为 **`.venv-vllm`**；服务器不存在 `.venv`。
-家目录不可写或空间不足，每次 SSH / 新 Bash shell / screen 窗口先运行：
+在Mac上传`.cache/releases/e3-r1-tools.pyz`到服务器`/data/zlq/e3-r1-tools.pyz`，
+然后在服务器执行：
 
 ```bash
-cd /data/zlq/research_2026_cc
-source scripts/e2/env.sh
+cd /data/zlq/research_2026_cc && \
+source scripts/e2/env.sh && \
+.venv-client/bin/python /data/zlq/e3-r1-tools.pyz export \
+  --repo /data/zlq/research_2026_cc \
+  --output /data/zlq/e3-r1-e2-table.json.gz
 ```
 
-该脚本将 HuggingFace、pip、临时文件、matplotlib 和 XDG 配置/缓存放到仓库的数据盘目录。
-prepare 通过后，服务启动命令为：
-
-```bash
-E2_PYTHON=.venv-vllm/bin/python CUDA_VISIBLE_DEVICES=0 bash scripts/e2/serve_vllm.sh
-```
-
-本版流程为：
-
-```text
-version
-  → audit-data（无模型：数据、复核绑定、源完整性、旧账本）
-  → prepare（CPU：冻结检索、packing、主对照和请求集合）
-  → 启动 E2 vLLM
-  → preflight（实际服务/token IDs验收）
-  → smoke（正式dev前4题）
-  → run（剩余dev → 封存选择 → test → 分析）
-```
-
-每一步通过后才执行下一步。依赖版本相同、单元测试通过、公开数据复核通过，
-都不能代替服务器真实源文件、tokenizer、显存或模型输出验收。
-执行参数、断点恢复与结果文件以 [E2 操作说明](docs/E2组件交叉实验.md) 为准。
-一次命令生成的审计证据在 `runs/e2_component/audit-data.json`。
-`status` 只读现有账本，显示尝试次数与已存产物；账本缺失/损坏不会当作零次。
-V4→V5 仅允许经核实的零 attempts、零 results；继续使用 `component-v4.sqlite`，
-不通过新建预算槽恢复额度。同一 V5 身份有已提交请求时仍可正常断点恢复。
+成功显示`rows=2212`，按[E3操作说明](docs/E3离线回放.md)取回压缩包。
+服务器客户端是`.venv-client`，生成服务是`.venv-vllm`，服务器不存在`.venv`。
+家目录不可写，继续使用数据盘缓存。旧账本和运行目录保留原样。
+[E2操作说明](docs/E2组件交叉实验.md)作为历史执行手册保留，不是当前新任务入口。
 
 ## 历史版本
 
@@ -143,6 +136,7 @@ V4→V5 仅允许经核实的零 attempts、零 results；继续使用 `componen
 | `b7990d1` · 协议V4 | 增加 smoke 前置、对齐 tokenizer；真实数据资格未通过 |
 | **v0.2.0 · 协议V5** | 三轮设计评审通过；新增数据复核、版本/状态入口，修复截断响应和无效主对照；真实服务器分阶段待验收 |
 | **v0.2.1 · 协议V5** | 修正服务器解释器与缓存初始化；科研设计不变，在首次生成前升级 |
+| **E3-R1 · 离线回放** | R4–R9收敛后的零生成筛查，13项测试通过；真实回放待逐题数据 |
 
 代码位于 `src/memgate/experiments/`、入口位于 `scripts/e2/`。
 原始运行产物、模型和账本不进入 Git。官方 `third_party/SeqMem-Eval` 子模块保持原提交。
