@@ -265,6 +265,27 @@ def test_export_readonly_wal_rescore_and_corruption(tmp_path, table, monkeypatch
         exporter.export_table(tmp_path, tmp_path / "changed.json.gz")
 
 
+def test_release_zipapp_propagates_failure_exit_status(tmp_path):
+    built = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/e3/build_zipapp.py")],
+        cwd=ROOT, capture_output=True, text=True, timeout=30)
+    assert built.returncode == 0, built.stdout + built.stderr
+    archive = ROOT / ".cache/releases/e3-r1-tools.pyz"
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONHOME")}
+    for command in (
+        ["run", "--input", str(tmp_path / "missing.json.gz"),
+         "--repo", str(tmp_path), "--output-dir", str(tmp_path / "reports")],
+        ["export", "--repo", str(tmp_path), "--output", str(tmp_path / "export.json.gz")],
+    ):
+        failed = subprocess.run(
+            [sys.executable, str(archive), *command], cwd=tmp_path, env=env,
+            capture_output=True, text=True, timeout=30)
+        assert failed.returncode == 2, failed.stdout + failed.stderr
+        assert "ERROR:" in failed.stdout
+    assert not (tmp_path / "reports").exists()
+    assert not (tmp_path / "export.json.gz").exists()
+
+
 def test_missing_ledger_never_created(tmp_path):
     with pytest.raises(Invalid, match="Missing original ledger"):
         exporter.export_table(tmp_path, tmp_path / "no.json.gz")

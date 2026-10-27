@@ -15,5 +15,8 @@ with tempfile.TemporaryDirectory(dir=ROOT / ".cache", prefix="e3-zip-") as temp:
     names += [f"experiments/{n}" for n in ("__init__.py", "common.py", "ledger.py", "official.py", "inference.py")]
     for name in names:
         shutil.copyfile(ROOT / "src/memgate" / name, temp / "memgate" / name)
-    zipapp.create_archive(temp, output, main="memgate.replay.cli:main", compressed=True)
+    (temp / "__main__.py").write_text(
+        "from memgate.replay.cli import main\n"
+        "raise SystemExit(main())\n", encoding="utf-8")
+    zipapp.create_archive(temp, output, compressed=True)
 print(output)
