@@ -2,7 +2,7 @@
 
 2026-10-26，最终协议E3-R1。性质：已完成数据上的回顾性算法筛查。
 对应科研草案CVS-P3；替代CVS-P2作为当前唯一实现目标。
-准入结论与历轮问题见[收敛记录](reviews/2026-10-26/convergence.md)。
+准入结论与历轮问题见[收敛记录](reviews/e3_replay_design/convergence.md)。
 旧E2/V5及其INCONCLUSIVE结论不修改。
 
 ## 1. 问题和准入范围
@@ -16,7 +16,7 @@ A=ExpeL的规则/经历版本；B=实际提示表示驱动的评估分配与候�
 目标增量是表示如何影响选择；GP、核方法、预算分配、样本分割都不是新发明。
 HbBoPs已研究指令/示例结构核及多保真选择：
 <https://arxiv.org/html/2412.07820v2>，本轮读取摘要、§1–3.1。
-SkillSmith、PACE及低秩bandit约束继续适用，见原[来源](reviews/2026-10-26/sources.md)。
+SkillSmith、PACE及低秩bandit约束继续适用，见原[来源](reviews/e3_replay_design/sources.md)。
 
 **本阶段允许实现并运行只读导出和本地回放；新增LLM调用=0。**
 它不验证新的题目泛化、不证明相对HbBoPs完整方法的优势，不发安全部署证书。

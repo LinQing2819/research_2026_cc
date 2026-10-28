@@ -2,13 +2,13 @@
 
 **后续状态：本稿保留为已暂停的CVS-P2。当前可执行阶段已收敛为
 [E3-R1实际提示表示回放](e3_replay_protocol.md)，续审R4–R9见
-[收敛记录](reviews/2026-10-26/convergence.md)。P2未整体放行。**
+[收敛记录](reviews/e3_replay_design/convergence.md)。P2未整体放行。**
 
 方案标识：CVS-P2，2026-10-26，科研候选稿，不是 E2/V5 的修订。
 评审总状态：**HOLD_IMPLEMENTATION_AND_GENERATION**。
 已完成三轮书面审查；当前只允许数学分析、已有结果诊断与协议设计。
 不修改已完成的 v0.2.1 实验，不把新问题回写进旧预注册。
-决定及各轮问题见 [评审汇总](reviews/2026-10-26/decision.md)。
+决定及各轮问题见 [评审汇总](reviews/e3_replay_design/decision.md)。
 
 ## 1. 从实验中得到的线索及没有得到的证据
 

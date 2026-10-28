@@ -22,8 +22,8 @@
 
 ### 1. 冻结读取，不恢复在线状态
 
-源码依据：[ExpelOnlineST](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/methods/expel_online_st.py#L612-L777)、
-[Runner seed/resume](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/runner.py#L164-L233)。
+源码依据：[ExpelOnlineST](../../third_party/SeqMem-Eval/methods/expel_online_st.py#L612-L777)、
+[Runner seed/resume](../../third_party/SeqMem-Eval/runner.py#L164-L233)。
 
 - Engineering 没有交互 episode 接口，走 `generate()` 的非 action solver。在线成功由 `feedback.lower() == "success"` 决定，不是恢复函数使用的 `score >= 1`。导入时检查两者一致，不能只按 score 重建一个更大的池。
 - 规则用边界记录的 `memory_meta.insights_after` 原文，并核对 `memory.insights`、`rules_count` 和前后规则链。不要重新 normalize、补句号、重排或给规则虚构权重。
@@ -36,10 +36,10 @@
 
 ### 2. 忠实检索与真实 prompt
 
-源码依据：[检索及池追加](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/methods/expel_online_st.py#L488-L532)、
-[few-shot 与 solver builder](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/methods/expel_online_st.py#L244-L303)、
-[MMLU 数据接口](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/tasks/task_mmlu_pro.py#L123-L162)、
-[任务模板](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/prompts/prompt_templates.json#L7)。
+源码依据：[检索及池追加](../../third_party/SeqMem-Eval/methods/expel_online_st.py#L488-L532)、
+[few-shot 与 solver builder](../../third_party/SeqMem-Eval/methods/expel_online_st.py#L244-L303)、
+[MMLU 数据接口](../../third_party/SeqMem-Eval/tasks/task_mmlu_pro.py#L123-L162)、
+[任务模板](../../third_party/SeqMem-Eval/prompts/prompt_templates.json#L7)。
 
 | 对象 | 必须保留的官方语义 |
 | --- | --- |
@@ -60,8 +60,8 @@ embedding 输出需要检查维度、有限性和有效范数，持久化向量�
 
 ### 3. 源完整性、gold 与近重复
 
-[官方 MMLU qid/gold](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/tasks/task_mmlu_pro.py#L72-L105) 与
-[Runner eval qid](file:///Users/bytedance/research_26/research_2026_cc/third_party/SeqMem-Eval/runner.py#L367-L394) 不是同一种可靠标识：
+[官方 MMLU qid/gold](../../third_party/SeqMem-Eval/tasks/task_mmlu_pro.py#L72-L105) 与
+[Runner eval qid](../../third_party/SeqMem-Eval/runner.py#L367-L394) 不是同一种可靠标识：
 后者找 `entry["qid"]`，而任务实际存 `_qid`，可能退化成顺序号。源使用 memory JSONL 的真实 qid，不能拿 readable eval 的行号作公共 ID。
 
 必要导入检查：
@@ -92,11 +92,11 @@ V4 的 `8192 - 2048 - 256 = 5888` 算术闭合；服务原生窗口再大也不�
 
 ### 5. 单 4090 与精确服务计数
 
-版本证据：[client lock](file:///Users/bytedance/research_26/research_2026_cc/requirements/client.lock.txt#L218) 为 transformers 4.57.6，
-[server lock](file:///Users/bytedance/research_26/research_2026_cc/requirements/vllm.lock.txt#L461) 为 transformers 4.51.3、vLLM 0.8.5。
+版本证据：[client lock](../../requirements/client.lock.txt#L218) 为 transformers 4.57.6，
+[server lock](../../requirements/vllm.lock.txt#L461) 为 transformers 4.51.3、vLLM 0.8.5。
 两环境应保持分离。包版本不同本身不否决，但同模型名字或相同 token 总数都不能证明 tokenizer 一致。
 
-现有 [E0 启动脚本](file:///Users/bytedance/research_26/research_2026_cc/scripts/e0/serve_vllm.sh#L20-L43) 默认 `MAX_LEN=32768`、`GPU_UTIL=0.95`，不能直接把默认值当成 E2 的单卡验收配置。
+现有 [E0 启动脚本](../../scripts/e0/serve_vllm.sh#L20-L43) 默认 `MAX_LEN=32768`、`GPU_UTIL=0.95`，不能直接把默认值当成 E2 的单卡验收配置。
 E2 启动说明应固定单卡、TP=1、`max_model_len=8192`、单请求/低并发、明确 dtype 和 `generation-config=vllm`。
 保守起点是 `max_num_seqs=1`、eager 执行、与 8192 匹配的 batching 配置，CPU 执行 embedding；不要默认让 SentenceTransformer 自动占用生成卡。
 这属于独立 `scripts/e2` 的职责，不要求改 E0 脚本。

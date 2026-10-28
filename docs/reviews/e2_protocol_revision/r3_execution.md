@@ -3,7 +3,7 @@
 ## 结论
 
 - **C1、C2 均存在，均为 P2 / major，非误报。** 前者是自动恢复与错误证据缺口，后者是生成前主对照有效性检查缺口；不升级为预算失账、错误统计公式或已发生的服务器事故。
-- **R3 = PASS_FOR_IMPLEMENTATION_IF_R2_PASS**：V4 加 V5-RC1 的工程合同可实现，无须为可编码性改变科研设计。收尾时已读取本次 [R2:39-49](file:///Users/bytedance/research_26/research_2026_cc/docs/reviews/2026-10-24_r2_statistics.md#L39-L49) 的 `PASS_FOR_FROZEN_PILOT`，且核对其 V5 文件 hash 一致，因此此设计前置已满足；不是用 10 月 20 日的 V4 R2 PASS 代替。通过仅允许编码，不授权生成。
+- **R3 = PASS_FOR_IMPLEMENTATION_IF_R2_PASS**：V4 加 V5-RC1 的工程合同可实现，无须为可编码性改变科研设计。收尾时已读取本次 [R2:39-49](r2_statistics.md#L39-L49) 的 `PASS_FOR_FROZEN_PILOT`，且核对其 V5 文件 hash 一致，因此此设计前置已满足；不是用 10 月 20 日的 V4 R2 PASS 代替。通过仅允许编码，不授权生成。
 - **当前基线按 V5 执行 = FAIL（未满足运行准入）**：C1/C2 未修，新审计/复核路径尚未实现，服务器源、账本、真实 tokenizer/上下文和 smoke 均未独立验收。软件版本升级或本报告不能解除这些阻断。
 - 最小实施范围是本文列出的数据审计入口、身份绑定与共同排除、C1/C2 修复、回归测试、版本和交付文档。任何验收失败均停止；不得通过换题、换快照、删除账本、扩大上下文或追加预算取得通过。
 
@@ -30,11 +30,11 @@
 
 | 编号 | 问题 | 最小建议 | 源码位置 |
 |---|---|---|---|
-| C1 | 不完整 HTTP 响应绕过传输失败落盘和自动重试 | 显式保存中断类型、部分字节证据及可知的 HTTP 状态；正式请求沿用原 payload/seed 和预算；probe 不重试 | [ledger.py:27-33](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/ledger.py#L27-L33) |
-| C2 | joint-change 不能保证 ON/ZE 存在实际干预 | 在最终合格 test 上分别计数 ON/OO、ON/NN、ON/ZE 的完整 IDs 不同题数；任一为零，生成前停止 | [study.py:148-154](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/study.py#L148-L154) |
+| C1 | 不完整 HTTP 响应绕过传输失败落盘和自动重试 | 显式保存中断类型、部分字节证据及可知的 HTTP 状态；正式请求沿用原 payload/seed 和预算；probe 不重试 | [ledger.py:27-33](../../../src/memgate/experiments/ledger.py#L27-L33) |
+| C2 | joint-change 不能保证 ON/ZE 存在实际干预 | 在最终合格 test 上分别计数 ON/OO、ON/NN、ON/ZE 的完整 IDs 不同题数；任一为零，生成前停止 | [study.py:148-154](../../../src/memgate/experiments/study.py#L148-L154) |
 
 候选文档 C1 的辅助调用位置 `209-212` 不是实际派发位置；基线的 reserve/request/save_raw 位于
-[ledger.py:217-219](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/ledger.py#L217-L219)。
+[ledger.py:217-219](../../../src/memgate/experiments/ledger.py#L217-L219)。
 此行号修正不影响问题成立。
 
 反证检查：
@@ -111,11 +111,11 @@ hash 口径：使用 `common.digest` 的 canonical JSON，即 UTF-8、对象键�
 
 ### 1. 审计必须早于模型操作
 
-[V5:100-106](file:///Users/bytedance/research_26/research_2026_cc/docs/component_replay_protocol_v5.md#L100-L106)
+[V5:100-106](../../component_replay_protocol_v5.md#L100-L106)
 可实施，但不能只在现有 `prepare` 内加一个选项：
-[study.py:445-450](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/study.py#L445-L450)
+[study.py:445-450](../../../src/memgate/experiments/study.py#L445-L450)
 会先完整 fingerprint，
-[study.py:46-51](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/study.py#L46-L51)
+[study.py:46-51](../../../src/memgate/experiments/study.py#L46-L51)
 已经遍历模型和 embedding 文件。
 
 最小顺序为：公共列投影与源审计、完整原始候选审计、复核绑定、账本只读检查；
@@ -123,7 +123,7 @@ hash 口径：使用 `common.digest` 的 canonical JSON，即 UTF-8、对象键�
 才计算权重/embedding hash、加载 tokenizer/CPU embedding、打包。不存在模型目录或不可连接的
 base_url 不应妨碍独立数据审计。既有 manifest 也不能绕过新绑定的复核。
 
-不能直接复用 [source.py:16-35](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/source.py#L16-L35)
+不能直接复用 [source.py:16-35](../../../src/memgate/experiments/source.py#L16-L35)
 作为 public-only 审计入口：它目前读取整表和 gold。应拆出明确列投影，评分材料仍独立封存，
 不进入资格判定、query、检索、prompt 或 selector。
 完整源验证只比较全流公开字段和完整性，组件构造器只得到前 581 条；
@@ -131,7 +131,7 @@ base_url 不应妨碍独立数据审计。既有 manifest 也不能绕过新绑�
 
 ### 2. 绑定与资格必须形成同一条证据链
 
-[V5:33-57](file:///Users/bytedance/research_26/research_2026_cc/docs/component_replay_protocol_v5.md#L33-L57)
+[V5:33-57](../../component_replay_protocol_v5.md#L33-L57)
 已要求全公共投影、全原始审计、三对两端阶段/qid/内容 hash 和完整复核。
 实现时应冻结 schema/version 与 canonical hash 口径，检查候选集合及唯一性，而不是只检查数量为 3。
 漏项、多项、重复、未决、phase/qid 交换、内容/判定不符均拒绝；新出现的 prefix/dev 或 dev/test
@@ -143,7 +143,7 @@ base_url 不应妨碍独立数据审计。既有 manifest 也不能绕过新绑�
 
 manifest/fingerprint 必须绑定 V4 基础合同、V5 修订、复核文件内容、源/公共数据、
 原 split、数据排除、最终共同资格和调度。当前
-[study.py:33-40](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/study.py#L33-L40)
+[study.py:33-40](../../../src/memgate/experiments/study.py#L33-L40)
 只纳入 V4；不能仅把 CLI 名称改成 V5。
 不可将 audit-data 的运行时间、账本阶段/次数等可变状态放进输入 identity，否则正常续跑会自我拒绝。
 应区分稳定的数据资格证据和可更新的执行状态摘要。
@@ -151,14 +151,14 @@ manifest/fingerprint 必须绑定 V4 基础合同、V5 修订、复核文件内�
 全臂只排除 test 12215/11932，dev 与 prefix 不变，11872 保留，不补位。
 数据排除后 test=94，之后仍可能有上下文排除，最终 n 至多94。检索/打包/请求只对数据合格题执行。
 重复排除没有 `questions/` 文件也必须进入 manifest 和最终报告；现有
-[study.py:393-396](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/study.py#L393-L396)
+[study.py:393-396](../../../src/memgate/experiments/study.py#L393-L396)
 只从已打包 question 读取排除，不能单靠它报告 V5 的数据排除。
 
 ### 3. 只读检查、零尝试迁移与恢复
 
 保持 `runs/.e2-ledgers/component-v4.sqlite` 同一个预算槽，不另建 `component-v5.sqlite`。
 现有
-[ledger.py:104-114](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/ledger.py#L104-L114)
+[ledger.py:104-114](../../../src/memgate/experiments/ledger.py#L104-L114)
 已有不同 identity 只在 attempts/results 都为空时重绑定的基础，可复用这一限制。
 
 `audit-data` 不得实例化当前 Ledger：其构造函数会建目录/锁/表、设置 WAL 并可能删除旧 meta。
@@ -280,11 +280,11 @@ flowchart TD
 README首页明确“软件v0.2.0、研究协议V5、服务器审计/prepare/preflight/smoke各自的真实状态”。
 不能把本地测试通过或R3设计通过写成真实服务器已验收，也不能提前把有效test写死为94。
 
-收尾看到的 [实现清单](file:///Users/bytedance/research_26/research_2026_cc/docs/releases/v0.2.0_implementation_plan.md)
+收尾看到的 [实现清单](../../releases/v0.2.0_implementation_plan.md)
 已纳入固定批准记录 digest、只读入口、同槽迁移、HTTPError 中断保护和 bundle，实施方向与本合同一致。
 其第32行“零生成”必须落实为 V5 的零 attempts **且**零 results，不能用正式回答数为零代替。
 新版 README 草稿已区分候选软件、V5-RC1与未来验收步骤，但
-[README:11](file:///Users/bytedance/research_26/research_2026_cc/README.md#L11)
+[README:11](../../../README.md#L11)
 “没有 E2 新生成结果”仍需最小修订为“按交接尚未生成，待服务器账本核实”，直至取得原始证据。
 这是发布陈述的必要验收修正，不构成第三个程序 bug；本次未修改 README 或实现清单。
 

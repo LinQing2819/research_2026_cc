@@ -11,8 +11,8 @@
 
 | 编号 | 问题与严重度 | 最小修订建议（本轮不实施） | 新版本代码位置 |
 |---|---|---|---|
-| C1 | P2：不完整 HTTP 响应逃逸，中断传输证据落盘和自动计费重试；不是预算丢失 | 捕获 `IncompleteRead`，保存传输失败及可用部分字节证据，正式请求按原 payload/seed 和剩余预算重试；保留 probe 不重试、完整损坏成功响应拒绝 | [ledger.py:27-33](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/ledger.py#L27-L33)，调用链 [217-219](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/ledger.py#L217-L219) |
-| C2 | P2：joint-change 不能排除 ON 与 ZE 全 test 相同，缺少必要主对照输入干预仍会安排生成 | 在最终共同合格 test 上逐一统计 ON/OO、ON/NN、ON/ZE 完整 IDs 的差异数；任一为零，在任何生成前停止，保留证据、不换题或快照 | [study.py:148-154](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/study.py#L148-L154) |
+| C1 | P2：不完整 HTTP 响应逃逸，中断传输证据落盘和自动计费重试；不是预算丢失 | 捕获 `IncompleteRead`，保存传输失败及可用部分字节证据，正式请求按原 payload/seed 和剩余预算重试；保留 probe 不重试、完整损坏成功响应拒绝 | [ledger.py:27-33](../../../src/memgate/experiments/ledger.py#L27-L33)，调用链 [217-219](../../../src/memgate/experiments/ledger.py#L217-L219) |
+| C2 | P2：joint-change 不能排除 ON 与 ZE 全 test 相同，缺少必要主对照输入干预仍会安排生成 | 在最终共同合格 test 上逐一统计 ON/OO、ON/NN、ON/ZE 完整 IDs 的差异数；任一为零，在任何生成前停止，保留证据、不换题或快照 | [study.py:148-154](../../../src/memgate/experiments/study.py#L148-L154) |
 
 候选报告把 C1 调用处写成 `ledger.py:209-212`；在本次基线中这几行是校验/构造结果，
 真正的 reserve/request/save_raw 调用位置是 **217-219**。问题存在性不受该行号更正影响。
@@ -74,7 +74,7 @@ V4 docs/component_replay_protocol.md
 f858562d595bb1e96d6f9b5f60538de43bb423da49e83d5883a4989e5137d0d8
 V5-RC1 docs/component_replay_protocol_v5.md
 51282a35aea3acc7f62624729cf290d107d4d2fec052a129bf23ebf7749cc919
-候选报告 docs/reviews/2026-10-24_candidates.md
+候选报告 docs/reviews/e2_protocol_revision/candidates.md
 56a8021fdcf9e677c659488c17477bdd7140b8dd9838ba97c0f2cbd4bda51e31
 ```
 
@@ -107,7 +107,7 @@ logical=1, retries=1, attempts=2, results=1
 
 ### C2：存在性和误报排除
 
-[pack_rules:59-65](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/prompts.py#L59-L65)
+[pack_rules:59-65](../../../src/memgate/experiments/prompts.py#L59-L65)
 只保留完整前缀条目。首条超限时最终返回 `(empty)` 是合法 packing，并非新 bug。
 ON 与 ZE 都使用同一 E新；当旧规则变成空块时，官方 scaffold 不附加臂名，
 所以两个臂完整输入相同。组件不变性校验不会拒绝这种合法相同输入。
@@ -178,7 +178,7 @@ fa0a1f1d11e97a702a3a78620d88a261b7778fb4e6cc350211560f41a797d7fe
 | prefix | 11804 | `fcb8be8b0ae09574890eb175bad38fb7eb08f8a1cbef2c396169a0c0397f138f` |
 | test | 11932 | `20f59901df96747ffd990ac157d918dfc6e081aa9cbfdb0e994f86898307249a` |
 
-[V5:32-46](file:///Users/bytedance/research_26/research_2026_cc/docs/component_replay_protocol_v5.md#L32-L46)
+[V5:32-46](../../component_replay_protocol_v5.md#L32-L46)
 要求同时绑定完整公共投影、完整原审计及每对两端内容，并拒绝缺项、多项、重复、未决或不匹配。
 这是充分明确的冻结要求；上述 hash 是本地复核证据，不是已经存在的服务器资格产物，
 也没有创建计划中的 `configs/e2_duplicate_review.json`。
@@ -188,7 +188,7 @@ fa0a1f1d11e97a702a3a78620d88a261b7778fb4e6cc350211560f41a797d7fe
 
 ### 资格、选择与推断目标
 
-[V5:48-79](file:///Users/bytedance/research_26/research_2026_cc/docs/component_replay_protocol_v5.md#L48-L79)
+[V5:48-79](../../component_replay_protocol_v5.md#L48-L79)
 仅删除两个已确认重复的 test 端，保留前缀记忆和原 dev 列表，不补位、不改变 seed 或快照。
 原 test 顺序中排除项为11932、12215；11872仍保留。数据资格阶段剩94题，
 之后仍可能被七臂共同上下文规则排除，故最终只能写 **n<=94**。
@@ -207,8 +207,8 @@ fa0a1f1d11e97a702a3a78620d88a261b7778fb4e6cc350211560f41a797d7fe
 
 ### 六对比与区间
 
-[inference.py:59-111](file:///Users/bytedance/research_26/research_2026_cc/src/memgate/experiments/inference.py#L59-L111)
-与 [V4:128-188](file:///Users/bytedance/research_26/research_2026_cc/docs/component_replay_protocol.md#L128-L188)
+[inference.py:59-111](../../../src/memgate/experiments/inference.py#L59-L111)
+与 [V4:128-188](../../component_replay_protocol.md#L128-L188)
 一致：C1=ON-OO、C2=ON-NN、C3=ON-ZE、I=NN-NO-ON+OO、D_F=S-F、D_ON=S-ON。
 条件于历史、固定题集、dev及封存 S/F，只对新解码均值推断。
 每个有界独立请求权重为 `c_a/(2n)`，平方权重和为 `sum(c_a^2)/(2n)`，

@@ -1,15 +1,15 @@
 # v0.2.0 / V5 三轮评审决定
 
 日期：2026-10-24。代码基线：b7990d1。
-评审对象：[V5-RC1](../component_replay_protocol_v5.md)，基础为不回写的 V4。
+评审对象：[V5-RC1](../../component_replay_protocol_v5.md)，基础为不回写的 V4。
 审阅原文 SHA256：`51282a35aea3acc7f62624729cf290d107d4d2fec052a129bf23ebf7749cc919`。
 此决定形成时尚未实现 V5 新路径、未修改 E2 执行代码、未运行真实生成。
 
 | 轮次 | 审查内容 | 结论 |
 |---|---|---|
 | R1 · 主代理 | 研究问题、排除依据、与已有论文关系、结论边界 | PASS_FOR_FROZEN_PILOT，见 V5-RC1 末尾；不放行小效应确认或投稿贡献主张 |
-| R2 · 独立复核 | 公共数据、前生成修订、固定题集推断、六区间、功效与预算 | [PASS_FOR_FROZEN_PILOT](2026-10-24_r2_statistics.md) |
-| R3 · 独立复核 | 数据/源/账本证据链、输入与上下文、迁移和恢复、可实现性 | [PASS_FOR_IMPLEMENTATION_IF_R2_PASS](2026-10-24_r3_execution.md)；本轮 R2 已通过同一份 RC1，前置条件满足 |
+| R2 · 独立复核 | 公共数据、前生成修订、固定题集推断、六区间、功效与预算 | [PASS_FOR_FROZEN_PILOT](r2_statistics.md) |
+| R3 · 独立复核 | 数据/源/账本证据链、输入与上下文、迁移和恢复、可实现性 | [PASS_FOR_IMPLEMENTATION_IF_R2_PASS](r3_execution.md)；本轮 R2 已通过同一份 RC1，前置条件满足 |
 
 **三轮通过，允许实现和离线验收 V5。**
 不代表服务器源、旧账本、真实 tokenizer/显存、preflight/smoke 或效应已经通过。
@@ -56,6 +56,6 @@ V5 最终文档仅更新 RC1 的通过/实现状态描述，不改变获批的�
 | A08–A11：预算、响应、上下文及阶段隔离 | 新V5回归及原46项：服务上限/完整IDs、5888边界、预算/重试、raw恢复、smoke、selection、授权投影与固定统计 |
 | A12：交付 | 版本CLI、依赖不变、wheel构建、bundle离线更新说明；服务器的源、账本、tokenizer、显存与真实阶段仍未验收 |
 
-测试最终结果见 [CHANGELOG](../../CHANGELOG.md)。公开parquet复核只读取公共列，
+测试最终结果见 [CHANGELOG](../../../CHANGELOG.md)。公开parquet复核只读取公共列，
 测试中的历史源/账本为合成材料，不能代替服务器原件。
 本机无需重新生成 E0；没有执行远程 vLLM、preflight、smoke 或 E2 正式生成。
