@@ -1,0 +1,160 @@
+{
+  "schema": "V3_CURATED_LIBRARY_1",
+  "version": "manual-initialization-v1",
+  "bundle_sha256": "38ec852f428a18a0979d9d5ee6ee536239129e220f99123c84d4ab3f18b194ec",
+  "prefix_public_sha256": "79e515efcecad48623955ca523a998d279b9bbb8f34c365f6d5c89fd689a82b6",
+  "author": "本助手基于构建题重新推导；非开放数据原附解法、非独立专家认证、非自动演化产物。",
+  "exposure": "作者看过158道开发公开题面、581道构建题摘要及部分完整构建题；本轮未用开发gold或回答编写内容。历史会话已有E2开发结果，因此不是盲法或未暴露确认集。derived_from记录实际正文来源，不抹去更广的阅读暴露。",
+  "cost": "本轮没有另发solver/curator/embedding请求。助手整理和复核消耗未单独计量，不能记为免费，也不能作为自动curator的费用或成功率。",
+  "rules": [
+    {
+      "id": "R-complex-v1",
+      "sources": ["11321"],
+      "text": "For sinusoidal phasors using one common frequency and phase convention, write z = x + jy = r exp(j theta), with r = hypot(x,y) and theta = atan2(y,x). Add or subtract in rectangular form; multiply or divide magnitudes and add or subtract phases in polar form. Equivalently divide by multiplying numerator and denominator by the denominator's complex conjugate. Preserve the sign of the imaginary component. This is algebra, not a substitute for the physical relation defining a voltage, current or reflection coefficient."
+    },
+    {
+      "id": "R-electrostatic-v1",
+      "sources": ["11322"],
+      "text": "In electrostatics E = -grad(V), and the potential difference is minus the line integral of E. In a homogeneous charge-free dielectric, V satisfies Laplace's equation. Choose the differential operator and boundary conditions for the actual geometry. Once the conductor charge Q and potential difference Delta V are related, C = Q/Delta V. The parallel-plate formula epsilon A/d assumes a uniform dielectric and negligible edge effects; it cannot be copied to curved conductors."
+    },
+    {
+      "id": "R-ampere-v1",
+      "sources": ["11356"],
+      "text": "For magnetostatic fields, integral H dot dl around a closed path equals the free current linking the path; in a linear isotropic material B = mu H. Use symmetry to justify any constant-field segment and add the integrals over different materials. For a long air-core solenoid only, H approximately equals NI/l and L approximately equals mu0 N^2 A/l. An air gap or a different geometry requires a new path calculation; the long-solenoid formula is not universal."
+    },
+    {
+      "id": "R-moments-v1",
+      "sources": ["11428"],
+      "text": "Check that probabilities sum to one (or a density integrates to one on its support). Compute m1 = E[X] and m2 = E[X^2], then Var(X) = m2 - m1^2. Use sums for a discrete distribution and integrals for a continuous one, with the actual support. E[X^2] is generally not E[X]^2. A negative variance indicates an error or an invalid distribution."
+    },
+    {
+      "id": "R-wave-power-v1",
+      "sources": ["11464"],
+      "text": "For a transverse traveling sinusoidal wave in a lossless medium with real wave impedance eta, average power flux is E_peak^2/(2 eta) = eta H_peak^2/2. The factor 1/2 comes from averaging a squared sinusoid; omit it when using RMS field amplitudes. Total power is the surface integral of the normal component of average flux, including any spatial dependence and the correct area element. Do not use the lossless formula unchanged in a conducting medium."
+    },
+    {
+      "id": "R-fourier-v1",
+      "sources": ["11634"],
+      "text": "Local one-dimensional Fourier conduction obeys q'' = -k dT/dx. For a steady plane layer of constant k, constant area and no internal heat generation, Qdot = k A (T_hot-T_cold)/L. Check length, area, power and temperature-difference units before solving. Curved geometry, variable conductivity or internal heat generation requires deriving the temperature profile from the local law and an energy balance; the constant-flux plane-layer formula does not apply unchanged."
+    },
+    {
+      "id": "R-variable-k-v1",
+      "sources": ["11634"],
+      "text": "For steady one-dimensional conduction without internal heat generation, start with Qdot = -k(T) A(x) dT/dx and separate the spatial and temperature integrals. A linear k(T) = a + bT has antiderivative aT + bT^2/2. Keep the temperature scale used to fit k(T); substituting absolute temperature without converting the coefficients changes the material law. Do not assume constant area in a cylindrical or spherical layer."
+    },
+    {
+      "id": "R-bayes-v1",
+      "sources": ["11651"],
+      "text": "For an observation B with positive probability, P(A|B) = P(B|A)P(A)/P(B). Obtain the denominator by summing joint probabilities over mutually exclusive, exhaustive hypotheses. Normalize before interpreting the result. The information in an event with probability p is -log2(p) bits; average information is the probability-weighted mean. A posterior probability alone does not specify the best action when different errors have different costs."
+    },
+    {
+      "id": "R-storage-v1",
+      "sources": ["11693"],
+      "text": "For a constant linear capacitor q = Cv, and stored energy is integral v dq = Cv^2/2 = q^2/(2C). For a constant linear inductor with flux linkage lambda = Li, stored energy is integral i d(lambda) = Li^2/2. The units are joules. Identify whether charge, voltage or current is held fixed when a parameter changes. Nonlinear or time-varying elements require their constitutive relation and an energy balance."
+    },
+    {
+      "id": "R-divergence-v1",
+      "sources": ["11778"],
+      "text": "Divergence measures net outward flux per unit volume. In Cartesian coordinates div(A) = dAx/dx + dAy/dy + dAz/dz. For a radial spherical field Ar(r), div(A) = (1/r^2) d(r^2 Ar)/dr away from the origin. The volume integral equals outward boundary flux when the divergence theorem's regularity conditions hold. For an origin singularity, excise a small sphere and include its flux before taking a limit; do not silently discard a point source."
+    },
+    {
+      "id": "R-charge-ode-v1",
+      "sources": ["11854"],
+      "text": "With a fixed current orientation, i = dq/dt. If the constitutive relation reduces to dq/dt = a q with constant a, q(t) = q(t0) exp[a(t-t0)]; determine the constant from the stated initial condition. A negative a produces decay and a positive a growth. Check the relation and initial condition by differentiating the result. Separate initial-condition subproblems need not describe one common trajectory."
+    }
+  ],
+  "examples": [
+    {
+      "source": "11311", "gold": "H", "check": "dc_power",
+      "claims": {"current_A": 2.0, "power_W": 440.0},
+      "conditions": "直流稳态、给定绕组电阻；不推断其他电机损耗。",
+      "trajectory": "For the field winding in DC steady state, I = V/R = 220/110 = 2 A. Electrical power is P = VI = 220*2 = 440 W. Checking with the equivalent expression V^2/R gives the same 440 W; ohms and volts give amperes and watts. This is the field-excitation power only. The answer is (H)."
+    },
+    {
+      "source": "11321", "gold": "J", "check": "complex_powers",
+      "claims": {"magnitude": 9.99977999758, "phase_degrees": 30.0007277808},
+      "conditions": "8.66是5√3的舍入值；结果按题目给定精度舍入。",
+      "trajectory": "The magnitude is sqrt(8.66^2+5^2) = 9.99978, approximately 10, and atan2(5,8.66) is approximately 30 degrees. Squaring multiplies the phase by 2 and squares the magnitude, giving approximately 100 angle 60 degrees. The fifth power is approximately 100000 angle 150 degrees. Direct rectangular multiplication gives z^2 = 49.9956 + j86.6, consistent with that magnitude and quadrant. The answer is (J)."
+    },
+    {
+      "source": "11322", "gold": "C", "check": "plate_capacitance",
+      "claims": {"normalized_C": 6.0},
+      "conditions": "均匀线性介质、忽略边缘效应；验证用任意非目标题参数复算边界值。",
+      "trajectory": "Let the plates be at x=0 and x=d, with potentials 0 and V0. In the charge-free uniform dielectric, d^2V/dx^2=0, so V(x)=V0*x/d. Thus E_x=-V0/d. The magnitude of the free surface charge density is epsilon*V0/d, and the charge magnitude on area S is Q=epsilon*S*V0/d. Therefore C=Q/V0=epsilon*S/d. This assumes negligible fringing and a homogeneous dielectric. The answer is (C)."
+    },
+    {
+      "source": "11325", "gold": "E", "check": "resistor_integral",
+      "claims": {"energy_J": 3.75},
+      "conditions": "电流幅值按安培；不能把平均电流的平方当作均方电流。",
+      "trajectory": "The instantaneous power is R*i(t)^2 = 2*cos^4(pi*t) W. Use cos^4(x) = (3+4*cos(2x)+cos(4x))/8. Integrating from 0 to 5 seconds, both cosine terms have zero integral because the interval contains an integer number of periods. The energy is 2*(3/8)*5 = 3.75 J, which is nonnegative as required for resistor dissipation. The answer is (E)."
+    },
+    {
+      "source": "11356", "gold": "G", "check": "solenoid_energy",
+      "claims": {"inductance_H": 0.00296088132, "energy_J": 0.148044066},
+      "conditions": "题目未给磁芯，采用长空气芯螺线管近似；原题0.15 J为舍入值，不是精确有限长场解。",
+      "trajectory": "Assume a long air-core solenoid and neglect end effects. Convert l=0.30 m and radius r=0.015 m, so A=pi*r^2. With mu0=4*pi*10^-7 H/m and N=1000, L=mu0*N^2*A/l=0.00296088 H. At I=10 A, W=L*I^2/2=0.148044 J, approximately 0.15 J. Independently, H=NI/l and the energy density mu0*H^2/2 integrated over volume A*l gives the same energy. The answer is (G)."
+    },
+    {
+      "source": "11428", "gold": "I", "check": "discrete_variance",
+      "claims": {"mean": 1.125, "second_moment": 2.125, "variance": 0.859375},
+      "conditions": "四个概率之和为1；结果0.859按选项精度舍入。",
+      "trajectory": "The probabilities sum to 1. The mean is 0/4+1/2+2/8+3/8=9/8. The second moment is 0+1/2+4/8+9/8=17/8. Hence Var(X)=17/8-(9/8)^2=55/64=0.859375. Summing p(x)*(x-9/8)^2 directly also gives 55/64. To the displayed precision the answer is (I)."
+    },
+    {
+      "source": "11430", "gold": "C", "check": "uniform_variance",
+      "claims": {"mean": 1.5, "second_moment": 3.0, "variance": 0.75},
+      "conditions": "仅对区间[0,3]上的均匀密度；不把结论推广到非均匀分布。",
+      "trajectory": "The density is 1/3 on [0,3] and zero elsewhere. E[X]=integral_0^3 x/3 dx=3/2, while E[X^2]=integral_0^3 x^2/3 dx=3. Therefore Var(X)=3-(3/2)^2=3/4. Integrating (x-3/2)^2/3 over the same support gives the same result. The answer is (C)."
+    },
+    {
+      "source": "11464", "gold": "C", "check": "wave_amplitude",
+      "claims": {"electric_peak_V_m": 1008.5493775222652, "magnetic_peak_T": 0.0000033641586057587386},
+      "conditions": "按题目假想的单频自由空间行波求峰值；不是对真实太阳宽谱场的精确瞬时重建。原选项的乘点含U+0008损坏控制字符，数值可复核但输入格式未通过，不能直接用于本轮配对。",
+      "trajectory": "Treat the stated intensity as the time average for a sinusoidal plane wave in free space. I=epsilon0*c*E_peak^2/2, with c=299792458 m/s and epsilon0 approximately 8.8541878128e-12 F/m. Thus E_peak=sqrt(2*1350/(epsilon0*c)), approximately 1.01e3 V/m. B_peak=E_peak/c, approximately 3.36e-6 T. The listed 3.37e-6 value is consistent with the rounded field amplitude and c approximately 3e8. Peak and RMS amplitudes differ by sqrt(2). The answer is (C)."
+    },
+    {
+      "source": "11530", "gold": "B", "check": "rc_forced",
+      "claims": {"current_real_A": 0.024, "current_imag_A": 0.012},
+      "conditions": "cos约定下的受迫正弦稳态，省略的自然响应不属于所问i_forced。",
+      "trajectory": "Use cosine-reference phasors. At omega=1000 rad/s and C=1e-6 F, Z_C=1/(j*omega*C)=-j1000 ohms. The series impedance is 2000-j1000 ohms. Therefore I=60/(2000-j1000)=0.024+j0.012 A. Taking Re[I*exp(j1000t)] gives i_forced=(24*cos(1000t)-12*sin(1000t)) mA. Substituting this current and the corresponding capacitor voltage into the series voltage equation recovers 60*cos(1000t) V. The answer is (B)."
+    },
+    {
+      "source": "11634", "gold": "D", "check": "variable_conduction",
+      "claims": {"heat_flux_Btu_hr_ft2": 756.0, "profile_constant_ft": 0.4497354497},
+      "conditions": "题面10-5按10^-5解释；坐标x从2000°F热面起算，长度用ft。",
+      "trajectory": "Use a plane layer with steady conduction and no internal heat source. Thickness L=5/12 ft. The temperature integral is integral_200^2000 (0.12+5e-5*T) dT = 0.12*1800+2.5e-5*(2000^2-200^2)=315 Btu/(hr ft). Therefore q''=315/(5/12)=756 Btu/(hr ft^2). Measured from the hot face, x(T)=[340-0.12*T-2.5e-5*T^2]/756 ft, or approximately 0.449735-1.58730e-4*T-3.30688e-8*T^2. It gives x(2000)=0 and x(200)=5/12 ft and satisfies q''=-k*dT/dx. The answer is (D)."
+    },
+    {
+      "source": "11651", "gold": "I", "check": "bayes_information",
+      "claims": {"posterior": 0.375, "information_bits": 1.41503749928},
+      "conditions": "总体限定原题社区女孩；条件概率的分母是蓝眼睛事件。",
+      "trajectory": "Let B denote blonde hair and E blue eyes. P(B and E)=P(E|B)*P(B)=0.75*0.25=0.1875. Conditional on blue eyes, P(B|E)=0.1875/0.50=0.375. The additional information in learning B under that condition is -log2(0.375)=log2(8/3)=1.4150375 bits. This uses the conditional probability, not the unconditional 0.25. The answer is (I)."
+    },
+    {
+      "source": "11693", "gold": "C", "check": "linear_storage",
+      "claims": {"inductance_H": 10.0, "capacitance_F": 0.00016},
+      "conditions": "线性、常参数、无初始储能偏置；不适用于非线性元件直接套式。",
+      "trajectory": "For the linear inductor, W=L*I^2/2, hence L=2*20/2^2=10 H. For the linear capacitor, q=Cv and W=integral_0^q v dq=C*V^2/2, so C=2*20/500^2=0.00016 F=160 microfarads. Substitution returns 20 J for each component. The answer is (C)."
+    },
+    {
+      "source": "11854", "gold": "D", "check": "charge_ode",
+      "claims": {"charge_coefficient_C": 163.746150616, "current_coefficient_A": 0.149182469764},
+      "conditions": "q=50i的比例量纲为秒；a、b为两个不同初始条件，不能强行合并。",
+      "trajectory": "Since i=dq/dt and q=50i, dq/dt=q/50. Thus q=K*exp(t/50) and i=(K/50)*exp(t/50). In part (a), i(10)=4 A implies q(10)=200 C, so K=200*exp(-0.2)=163.746 C. In part (b), q(-20)=5 C implies K=5*exp(0.4), so i(t)=0.1*exp(0.4)*exp(t/50)=0.149182*exp(t/50) A. These are separate initial-condition cases. Both satisfy q=50i and their own boundary condition. The answer is (D)."
+    },
+    {
+      "source": "11867", "gold": "G", "check": "conditional_mean",
+      "claims": {"normalization": 1.0, "mean_at_x_half": 0.583333333333},
+      "conditions": "0<x<1；条件密度必须除以边缘密度x+1/2，保留完整支撑。",
+      "trajectory": "On the unit square the joint density x+y integrates to 1. For fixed 0<x<1, f_X(x)=integral_0^1 (x+y)dy=x+1/2. Hence f_{Y|X}(y|x)=(x+y)/(x+1/2) for 0<y<1. Its first moment is [integral_0^1 y(x+y)dy]/(x+1/2)=(x/2+1/3)/(x+1/2)=(3x+2)/[3(2x+1)]. The conditional density integrates to 1 for each permitted x. The answer is (G)."
+    }
+  ],
+  "quarantine": [
+    {"source": "11540", "reason": "数值导热率可复算，但A、B仅将温差单位°C写成K，物理上等价；不把数据标注B冒充唯一正确选项。R-fourier改从11634推导。"},
+    {"source": "11696", "reason": "按入射电压+50 V，Gamma=-0.25，反射电压应为-12.5 V、反射电流应为+0.25 A（同一正向电流坐标）；标注H却列+12.5 V和-0.25 A。没有静默改原选项。"},
+    {"source": "11849", "reason": "峰值H=5 A/m、mu_r=1时最大总能量密度mu*H_peak^2约3.14e-5 J/m^3；标注B给3.1e-4 joule/meter^2，量级与单位均不符。"},
+    {"source": "11844", "reason": "题面开头缺失；b问按被动约定的电压应为负而选项列正值。先隔离，不猜测是否原题只问幅值。"},
+    {"source": "11486", "reason": "sinh(x)与(e^x-e^-x)/2分别作为A、F，两个选项等价；不作为唯一字母监督例子。"},
+    {"source": "11778", "reason": "题干未限定n；普通瑕积分需n>-2，n=-2需原点分布源，n<-2不收敛。删除附加条件后才成立的例子草稿，不把标注A当作无条件示范。R-divergence保留为明确说明奇点处理的通用规则，其来源只继承公开问题，不继承此答案标签。"}
+  ]
+}
