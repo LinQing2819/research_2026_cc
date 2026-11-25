@@ -66,8 +66,6 @@ NOT_HUMAN_ADMITTED_LIBRARY; DESCRIPTIVE_ONLY
 
 ## 证据索引
 
-- 第一轮结果：`p6_mini_results.md`
-- hard-v2结果：`p6_mini_hard_results.md`
 - 第一轮执行身份：`bfc82eab23931ceb483ddda6312041b9a0791b384a5d7507f6be0be4c9d2d5e3`
 - hard-v2执行身份：`ce4497d932527247bed0215925c0272441f75f64f4a72e434aa21717803d5e02`
 - 两轮原始导出SHA256：
